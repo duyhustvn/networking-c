@@ -1,0 +1,46 @@
+#include "sniff.h"
+#include <pcap/pcap.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int main(int argc, char **argv) {
+  char *dev;
+  char dev_buff[64] = {0};
+  char errbuf[PCAP_ERRBUF_SIZE];
+  char *protocol;
+  int num_captured_packets;
+
+  if (argc != 3) {
+    printf("Usage: [%s] [protocol] [number-of-packets]\n", argv[0]);
+    return 0;
+  }
+
+  protocol = argv[1];
+  num_captured_packets = (atoi)(argv[2]);
+
+  // Ask user to provide the interface name
+  printf("Enter the interface name on which you wanna run the packet "
+         "sniffer: ");
+  fgets(dev_buff, sizeof(dev_buff) - 1, stdin);
+
+  // clear off the trailing newline that fgets sets
+  dev_buff[strlen(dev_buff) - 1] = '\0';
+
+  // check if something was provided by user
+  if (strlen(dev_buff)) {
+    dev = dev_buff;
+    printf("\n -- You opted for device [%s] to capture [%d] packets --", dev,
+           (atoi)(argv[2]));
+  }
+
+  // if smth was not provided
+  // return error
+  if (dev == NULL) {
+    printf("\n[%s]\n", errbuf);
+    return -1;
+  }
+
+  // fetch the network address and network mask
+  sniff(dev, protocol, num_captured_packets);
+}
