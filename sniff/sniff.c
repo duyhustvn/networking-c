@@ -1,10 +1,13 @@
 #include <errno.h>
+#include <net/ethernet.h>
 #include <netinet/in.h>
 #include <pcap.h>
 #include <pcap/pcap.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include <arpa/inet.h> // struct in_addr
 
@@ -20,11 +23,53 @@ char *convertIpFromNumberToText(bpf_u_int32 ip) {
   return net;
 }
 
+void printPacketType(uint16_t etherType) {
+  switch (etherType) {
+  case ETHERTYPE_IP:
+    printf("IP\n");
+    break;
+  case ETHERTYPE_IPV6:
+    printf("IPV6\n");
+    break;
+  case ETHERTYPE_ARP:
+    printf("ARP\n");
+    break;
+  case ETHERTYPE_REVARP:
+    printf("Reverse ARP\n");
+    break;
+  default:
+    printf("Need more investigation\n");
+  }
+}
+
+uint16_t determinePacketType(const u_char *packet) {
+  struct ether_header *etherHeader;
+  /*
+   * The packet is larger than the ether_header struct,
+   * but we just wanna look at the first part of the packet that contains the
+   * header. We force the compiler to treat the pointer to the packet as just a
+   * pointer to the ether_header The data payload of the packet comes after the
+   * headers. Different packet types have different header lengths though, bute
+   * the ethernet header is always the same (14 bytes)
+   * */
+
+  printf("Ether type:");
+  etherHeader = (struct ether_header *)packet;
+  uint16_t etherType = ntohs(etherHeader->ether_type);
+
+  return etherType;
+}
+
+// callback of pcap_loop for processing captured packet
 void callback(u_char *useless, const struct pcap_pkthdr *pkthdr,
               const u_char *packet) {
   static int count = 1;
-  printf("\nPacket number [%d], length of this packet is: %d\n", count++,
-         pkthdr->len);
+  printf("Packet number [%d], length of this packet is: %d bytes (%d%%) of "
+         "packet\n",
+         count++, pkthdr->len, (int)(100.0 * pkthdr->caplen / pkthdr->len));
+
+  uint16_t etherType = determinePacketType(packet);
+  printPacketType(etherType);
 }
 
 void sniff(char *dev, char *protocol, int num_captured_packets) {
