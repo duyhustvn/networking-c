@@ -11,6 +11,8 @@
 
 #include <arpa/inet.h> // struct in_addr
 
+#include "sniff.h"
+
 char *convertIpFromNumberToText(bpf_u_int32 ip) {
   struct in_addr addr;
   addr.s_addr = ip;
@@ -40,24 +42,6 @@ void printPacketType(uint16_t etherType) {
   default:
     printf("Need more investigation\n");
   }
-}
-
-uint16_t determinePacketType(const u_char *packet) {
-  struct ether_header *etherHeader;
-  /*
-   * The packet is larger than the ether_header struct,
-   * but we just wanna look at the first part of the packet that contains the
-   * header. We force the compiler to treat the pointer to the packet as just a
-   * pointer to the ether_header The data payload of the packet comes after the
-   * headers. Different packet types have different header lengths though, bute
-   * the ethernet header is always the same (14 bytes)
-   * */
-
-  printf("Ether type:");
-  etherHeader = (struct ether_header *)packet;
-  uint16_t etherType = ntohs(etherHeader->ether_type);
-
-  return etherType;
 }
 
 // callback of pcap_loop for processing captured packet
@@ -124,4 +108,22 @@ void sniff(char *dev, char *protocol, int num_captured_packets) {
   pcap_loop(descr, num_captured_packets, callback, NULL);
 
   printf("\nDone with packet sniffing\n");
+}
+
+uint16_t determinePacketType(const u_char *packet) {
+  struct ether_header *etherHeader;
+  /*
+   * The packet is larger than the ether_header struct,
+   * but we just wanna look at the first part of the packet that contains the
+   * header. We force the compiler to treat the pointer to the packet as just a
+   * pointer to the ether_header The data payload of the packet comes after the
+   * headers. Different packet types have different header lengths though, bute
+   * the ethernet header is always the same (14 bytes)
+   * */
+
+  printf("Ether type:");
+  etherHeader = (struct ether_header *)packet;
+  uint16_t etherType = ntohs(etherHeader->ether_type);
+
+  return etherType;
 }
