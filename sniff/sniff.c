@@ -82,6 +82,14 @@ void printIPAddr(const u_char *data) {
   printf("\n");
 }
 
+void printTCPPort(const u_char *data, int dataLength) {
+  for (int i = 0; i < dataLength; i++) {
+    printf("%d", data[i]);
+  }
+
+  printf("\n");
+}
+
 // callback of pcap_loop for processing captured packet
 void callback(u_char *useless, const struct pcap_pkthdr *pkthdr,
               const u_char *packet) {
@@ -104,9 +112,9 @@ void callback(u_char *useless, const struct pcap_pkthdr *pkthdr,
   printPacketType(etherType);
 
   // Pointer to start point of headers
-  const u_char *ipHeader;
-  const u_char *tcpHeader;
-  const u_char *payload;
+  const u_char *ipHeaderPtr;
+  const u_char *tcpHeaderPtr;
+  const u_char *payloadPtr;
 
   /* Header lengths in bytes
    ** The ethernet header length is always 14 bytes
@@ -139,12 +147,12 @@ void callback(u_char *useless, const struct pcap_pkthdr *pkthdr,
     ipHeaderLength = 40;
   } else if (etherType == ETHERTYPE_IP) {
     // start of ip header
-    ipHeader = packet + ethernetHeaderLength;
+    ipHeaderPtr = packet + ethernetHeaderLength;
     // The second half of the firt byte (at byte offset 4 of the IP header)
     // contains the IP header length
     // & 0x0F is a bitwise AND operation.
     // 0x0F is a hexadecimal number that represents the binary value 00001111
-    ipHeaderLength = ((*ipHeader) & 0x0F);
+    ipHeaderLength = ((*ipHeaderPtr) & 0x0F);
     // The lower 4 bits of the first byte of the IP header represent the header
     // length in 32-bit words. In other words, it tells you how many 32-bit
     // chunks are present in the header. Multiply by 4 (4 * 8 bits = 32 bits) to
@@ -157,7 +165,7 @@ void callback(u_char *useless, const struct pcap_pkthdr *pkthdr,
     printf("IP header length (IHL) in bytes: %d\n", ipHeaderLength);
 
     // Protocol is always the 10th byte of the IP header
-    u_char protocol = *(ipHeader + 9);
+    u_char protocol = *(ipHeaderPtr + 9);
     if (protocol != IPPROTO_TCP) {
       printf("Not a TCP packet. Skipping ...\n\n");
       return;
@@ -165,24 +173,36 @@ void callback(u_char *useless, const struct pcap_pkthdr *pkthdr,
 
     // Source IP is the 12nd byte of the IP header
     u_char srcIP[4], dstIP[4];
-    memcpy(srcIP, ipHeader + 12, 4);
+    memcpy(srcIP, ipHeaderPtr + 12, 4);
     printf("Source IP: ");
     printIPAddr(srcIP);
 
-    memcpy(dstIP, ipHeader + 16, 4);
+    memcpy(dstIP, ipHeaderPtr + 16, 4);
     printf("Dest IP: ");
     printIPAddr(dstIP);
 
-    tcpHeader = packet + ethernetHeaderLength + ipHeaderLength;
+    tcpHeaderPtr = packet + ethernetHeaderLength + ipHeaderLength;
     /* TCP header length is stored in the first half of the 12th byte in the TCP
      *header
      **
      ** 0xF0 = 1111.0000
      */
 
-    tcpHeaderLength = ((*(tcpHeader + 12)) & 0xF0) >> 4;
+    tcpHeaderLength = ((*(tcpHeaderPtr + 12)) & 0xF0) >> 4;
     tcpHeaderLength = tcpHeaderLength * 4;
     printf("TCP header length in bytes: %d\n", tcpHeaderLength);
+
+    u_char tcpHeader[tcpHeaderLength];
+    memcpy(tcpHeader, tcpHeaderPtr, tcpHeaderLength);
+
+    u_char srcPort[2], dstPort[2];
+    memcpy(srcPort, tcpHeaderPtr, 2);
+    printf("Source Port: ");
+    printTCPPort(srcPort, 2);
+
+    memcpy(dstPort, tcpHeaderPtr + 2, 2);
+    printf("Dest Port: ");
+    printTCPPort(dstPort, 2);
 
     int totalHeadersSize =
         ethernetHeaderLength + ipHeaderLength + tcpHeaderLength;
@@ -190,10 +210,10 @@ void callback(u_char *useless, const struct pcap_pkthdr *pkthdr,
 
     payloadLength = pkthdr->caplen - totalHeadersSize;
     printf("Payload size: %d\n", payloadLength);
-    payload = packet + payloadLength;
-    printf("Memory address where payload begin: %p\n", payload);
+    payloadPtr = packet + payloadLength;
+    printf("Memory address where payload begin: %p\n", payloadPtr);
 
-    printPayload(payload, payloadLength);
+    printPayload(payloadPtr, payloadLength);
   }
 
   printf("\n");
