@@ -61,6 +61,27 @@ void printPayload(const u_char *payload, int payloadLength) {
   }
 }
 
+void printMacAddr(const u_char *data) {
+  for (int i = 0; i < 6; i++) {
+    printf("%.2x", data[i]);
+    if (i < 5) {
+      printf(".");
+    }
+  }
+  printf("\n");
+}
+
+void printIPAddr(const u_char *data) {
+  for (int i = 0; i < 4; i++) {
+    printf("%d", data[i]);
+    if (i < 3) {
+      printf(".");
+    }
+  }
+
+  printf("\n");
+}
+
 // callback of pcap_loop for processing captured packet
 void callback(u_char *useless, const struct pcap_pkthdr *pkthdr,
               const u_char *packet) {
@@ -74,7 +95,7 @@ void callback(u_char *useless, const struct pcap_pkthdr *pkthdr,
    ** If the snapshot length set with pcap_open_live() is too small, you may not
    ** have the whole packet
    */
-  printf("Packet number [%d] \n", count++);
+  printf("\n\nPacket number [%d] \n", count++);
 
   printf("Total packet available: %d bytes\n", pkthdr->caplen);
   printf("Expected packet size: %d bytes\n", pkthdr->len);
@@ -89,6 +110,7 @@ void callback(u_char *useless, const struct pcap_pkthdr *pkthdr,
 
   /* Header lengths in bytes
    ** The ethernet header length is always 14 bytes
+   ** 6 bytes for Dest Mac, 6 bytes for Source Mac and 2 bytes for Ether Type
    ** The IP header length is stored in a 4 byte integer at byte offset 4 of the
    ** IP header
    ** The TCP header length is stored in a 4 byte integer at byte offset 12 of
@@ -97,10 +119,20 @@ void callback(u_char *useless, const struct pcap_pkthdr *pkthdr,
    ** payload_pointer =
    ** packet_pointer + len(Ethernet header) + len(IP header) + len(TCP header)
    */
-  int ethernetHeaderLength = 14;
-  int ipHeaderLength; // in bytes
+  int ethernetHeaderLength = 14; //  bytes
+  int ipHeaderLength;            // in bytes
   int tcpHeaderLength;
   int payloadLength;
+
+  u_char srcMac[6], dstMac[6];
+
+  memcpy(dstMac, packet, 6);
+  printf("Dest Mac: ");
+  printMacAddr(dstMac);
+
+  memcpy(srcMac, packet + 6, 6);
+  printf("Source Mac: ");
+  printMacAddr(srcMac);
 
   if (etherType == ETHERTYPE_IPV6) {
     // header length in ipv6 is fixed 40 bytes
@@ -130,6 +162,16 @@ void callback(u_char *useless, const struct pcap_pkthdr *pkthdr,
       printf("Not a TCP packet. Skipping ...\n\n");
       return;
     }
+
+    // Source IP is the 12nd byte of the IP header
+    u_char srcIP[4], dstIP[4];
+    memcpy(srcIP, ipHeader + 12, 4);
+    printf("Source IP: ");
+    printIPAddr(srcIP);
+
+    memcpy(dstIP, ipHeader + 16, 4);
+    printf("Dest IP: ");
+    printIPAddr(dstIP);
 
     tcpHeader = packet + ethernetHeaderLength + ipHeaderLength;
     /* TCP header length is stored in the first half of the 12th byte in the TCP
