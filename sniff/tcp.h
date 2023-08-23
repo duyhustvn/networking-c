@@ -4,7 +4,6 @@
 // reference: https://www.noction.com/blog/tcp-flags
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 
 struct tcpHeaderFlags {
   int ns; /* nonce sum experimental flags used to help protect against
@@ -42,12 +41,11 @@ struct tcpHeaderFlags {
              * connection. This is the standard method of how both parties end
              * the connection
              **/
+
+  // methods
 };
 
 struct tcpHeader {
-  unsigned char *data;
-  unsigned char len;
-
   unsigned int srcPort;        // 2 byte
   unsigned int dstPort;        // 2 byte
   unsigned int seqNumber;      // 4 byte
@@ -64,6 +62,9 @@ struct tcpHeader {
    * the urgent
    * pointer is used to indicate where the urgent data ends
    **/
+
+  // methods
+  void (*printTcpHeader)(struct tcpHeader *self);
 };
 
 struct tcpHeader *extractTcpHeader(unsigned char *tcpHeaderPtr);
@@ -73,5 +74,14 @@ unsigned int extractSequenceNumber(unsigned char *tcpHeaderPtr);
 unsigned int extractAckNumber(unsigned char *tcpHeaderPtr);
 unsigned int extractOffset(unsigned char *tcpHeaderPtr);
 unsigned int extractReserved(unsigned char *tcpHeaderPtr);
+int extractFlagNs(unsigned char *tcpHeaderPtr);
+int extractFlagCwr(unsigned char *tcpHeaderPtr);
+int extractFlagEce(unsigned char *tcpHeaderPtr);
+int extractFlagUrg(unsigned char *tcpHeaderPtr);
+int extractFlagAck(unsigned char *tcpHeaderPtr);
+int extractFlagPsh(unsigned char *tcpHeaderPtr);
+int extractFlagRst(unsigned char *tcpHeaderPtr);
+int extractFlagSync(unsigned char *tcpHeaderPtr);
+int extractFlagFin(unsigned char *tcpHeaderPtr);
 
 #endif // TCP_H_

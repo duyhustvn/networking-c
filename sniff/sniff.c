@@ -197,13 +197,7 @@ void callback(u_char *useless, const struct pcap_pkthdr *pkthdr,
     memcpy(tcpHeader, tcpHeaderPtr, tcpHeaderLength);
 
     struct tcpHeader *extractedTcpHeader = extractTcpHeader(tcpHeader);
-    printf("Source Port: %u\n", extractedTcpHeader->srcPort);
-    printf("Destination Port: %u\n", extractedTcpHeader->dstPort);
-    printf("Sequence Number: %u\n", extractedTcpHeader->seqNumber);
-    printf("Ack Number: %u\n", extractedTcpHeader->ackNumber);
-    printf("Offset: %u -> tcp header length: %u\n", extractedTcpHeader->offset,
-           4 * extractedTcpHeader->offset);
-    printf("Reserved: %u\n", extractedTcpHeader->reserved);
+    extractedTcpHeader->printTcpHeader(extractedTcpHeader);
 
     int totalHeadersSize =
         ethernetHeaderLength + ipHeaderLength + tcpHeaderLength;
