@@ -13,6 +13,7 @@
 #include <arpa/inet.h> // struct in_addr
 
 #include "sniff.h"
+#include "tcp.h"
 
 char *convertIpFromNumberToText(bpf_u_int32 ip) {
   struct in_addr addr;
@@ -195,14 +196,14 @@ void callback(u_char *useless, const struct pcap_pkthdr *pkthdr,
     u_char tcpHeader[tcpHeaderLength];
     memcpy(tcpHeader, tcpHeaderPtr, tcpHeaderLength);
 
-    u_char srcPort[2], dstPort[2];
-    memcpy(srcPort, tcpHeaderPtr, 2);
-    printf("Source Port: ");
-    printTCPPort(srcPort, 2);
-
-    memcpy(dstPort, tcpHeaderPtr + 2, 2);
-    printf("Dest Port: ");
-    printTCPPort(dstPort, 2);
+    struct tcpHeader *extractedTcpHeader = extractTcpHeader(tcpHeader);
+    printf("Source Port: %u\n", extractedTcpHeader->srcPort);
+    printf("Destination Port: %u\n", extractedTcpHeader->dstPort);
+    printf("Sequence Number: %u\n", extractedTcpHeader->seqNumber);
+    printf("Ack Number: %u\n", extractedTcpHeader->ackNumber);
+    printf("Offset: %u -> tcp header length: %u\n", extractedTcpHeader->offset,
+           4 * extractedTcpHeader->offset);
+    printf("Reserved: %u\n", extractedTcpHeader->reserved);
 
     int totalHeadersSize =
         ethernetHeaderLength + ipHeaderLength + tcpHeaderLength;
