@@ -12,6 +12,7 @@
 
 #include <arpa/inet.h> // struct in_addr
 
+#include "ethernet.h"
 #include "sniff.h"
 #include "tcp.h"
 
@@ -60,16 +61,6 @@ void printPayload(const u_char *payload, int payloadLength) {
   } else {
     printf("The payload is empty");
   }
-}
-
-void printMacAddr(const u_char *data) {
-  for (int i = 0; i < 6; i++) {
-    printf("%.2x", data[i]);
-    if (i < 5) {
-      printf(".");
-    }
-  }
-  printf("\n");
 }
 
 void printIPAddr(const u_char *data) {
@@ -142,6 +133,12 @@ void callback(u_char *useless, const struct pcap_pkthdr *pkthdr,
   memcpy(srcMac, packet + 6, 6);
   printf("Source Mac: ");
   printMacAddr(srcMac);
+
+  u_char ethernetHeader[ethernetHeaderLength];
+  memcpy(ethernetHeader, packet, ethernetHeaderLength);
+  struct ethernetFrame *extractedEthernetFrame =
+      extractEthernetFrame(ethernetHeader);
+  extractedEthernetFrame->printEtherFrame(extractedEthernetFrame);
 
   if (etherType == ETHERTYPE_IPV6) {
     // header length in ipv6 is fixed 40 bytes
