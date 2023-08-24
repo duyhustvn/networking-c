@@ -124,16 +124,6 @@ void callback(u_char *useless, const struct pcap_pkthdr *pkthdr,
   int tcpHeaderLength;
   int payloadLength;
 
-  u_char srcMac[6], dstMac[6];
-
-  memcpy(dstMac, packet, 6);
-  printf("Dest Mac: ");
-  printMacAddr(dstMac);
-
-  memcpy(srcMac, packet + 6, 6);
-  printf("Source Mac: ");
-  printMacAddr(srcMac);
-
   u_char ethernetHeader[ethernetHeaderLength];
   memcpy(ethernetHeader, packet, ethernetHeaderLength);
   struct ethernetFrame *extractedEthernetFrame =

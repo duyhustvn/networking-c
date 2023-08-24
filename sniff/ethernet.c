@@ -3,9 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-void printMacAddr(const unsigned char *data) {
+void printMacAddr(struct ethernetFrame *self, unsigned char *macAddr) {
   for (int i = 0; i < 6; i++) {
-    printf("%.2x", data[i]);
+    printf("%.2x", macAddr[i]);
     if (i < 5) {
       printf(".");
     }
@@ -16,9 +16,9 @@ void printMacAddr(const unsigned char *data) {
 void printEtherFrame(struct ethernetFrame *self) {
   printf("---- ETHERNET HEADER ----\n");
   printf("%20s |", "Source Mac");
-  printMacAddr(self->srcMac);
+  self->printMacAddr(self, self->srcMac);
   printf("%20s |", "Dest Mac");
-  printMacAddr(self->dstMac);
+  self->printMacAddr(self, self->dstMac);
 }
 
 struct ethernetFrame *extractEthernetFrame(unsigned char *ethernetFramePtr) {
@@ -29,5 +29,7 @@ struct ethernetFrame *extractEthernetFrame(unsigned char *ethernetFramePtr) {
   memcpy(e->srcMac, ethernetFramePtr + 6, 6);
 
   e->printEtherFrame = printEtherFrame;
+  e->printMacAddr = printMacAddr;
+
   return e;
 }

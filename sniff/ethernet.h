@@ -12,9 +12,9 @@ struct ethernetFrame {
 
   // methods
   void (*printEtherFrame)(struct ethernetFrame *self);
+  void (*printMacAddr)(struct ethernetFrame *self, unsigned char *macAddr);
 };
 
 struct ethernetFrame *extractEthernetFrame(unsigned char *ethernetFramePtr);
-void printMacAddr(const unsigned char *data);
 
 #endif // ETHERNET_H_
