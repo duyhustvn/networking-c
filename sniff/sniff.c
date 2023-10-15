@@ -1,4 +1,7 @@
 #include <errno.h>
+#include <libnet.h>
+#include <libnet/libnet-headers.h>
+#include <libnet/libnet-structures.h>
 #include <net/ethernet.h>
 #include <netinet/in.h>
 #include <pcap.h>
@@ -12,9 +15,11 @@
 
 #include <arpa/inet.h> // struct in_addr
 
+#include "dns.h"
 #include "ethernet.h"
 #include "sniff.h"
 #include "tcp.h"
+#include "udp.h"
 
 char *convertIpFromNumberToText(bpf_u_int32 ip) {
   struct in_addr addr;
@@ -29,6 +34,7 @@ char *convertIpFromNumberToText(bpf_u_int32 ip) {
 }
 
 void printPacketType(uint16_t etherType) {
+  printf("Ether type:");
   switch (etherType) {
   case ETHERTYPE_IP:
     printf("IP\n");
@@ -42,8 +48,14 @@ void printPacketType(uint16_t etherType) {
   case ETHERTYPE_REVARP:
     printf("Reverse ARP\n");
     break;
+  case ETHERTYPE_VLAN:
+    printf("VLAN");
+    break;
+  case ETHERTYPE_IPX:
+    printf("IPX");
+    break;
   default:
-    printf("Need more investigation\n");
+    printf("Ether type %d. Need more investigation\n", etherType);
   }
 }
 
@@ -82,6 +94,80 @@ void printTCPPort(const u_char *data, int dataLength) {
   printf("\n");
 }
 
+void processDNS(const unsigned char *dnsHeaderPtr,
+                const struct pcap_pkthdr *pkthdr, const u_char *packet) {
+
+  struct dnsHeader *dnsHdr = extractDnsHeader(dnsHeaderPtr);
+  dnsHdr->printDnsHeader(dnsHdr);
+
+  if (dnsHdr->qr == 1) {
+    printf("DNS Response");
+  }
+
+  const u_char *dnsQuestionPtr = dnsHeaderPtr + 12;
+
+  struct dnsQuestion *dnsQues = extractDnsQuestion(dnsQuestionPtr);
+  dnsQues->printDnsQuestion(dnsQues);
+}
+
+void processUdpPacket(int ethernetHeaderLength, const u_char *ipHeaderPtr,
+                      int ipHeaderLength, const struct pcap_pkthdr *pkthdr,
+                      const u_char *packet) {
+
+  const u_char *udpHeaderPtr = packet + ethernetHeaderLength + ipHeaderLength;
+
+  struct udpHeader *extractedUdpHeader = extractUdpHeader(udpHeaderPtr);
+  // printf("UDP src port: %d\n", extractedUdpHeader->srcPort);
+  // printf("UDP dst port: %d %d\n", extractedUdpHeader->dstPort,
+  //        ntohs(extractedUdpHeader->dstPort));
+
+  if (extractedUdpHeader->dstPort == 53) {
+    printf("DNS Query\n");
+    const u_char *dnsHeaderPtr = udpHeaderPtr + 8;
+    processDNS(dnsHeaderPtr, pkthdr, packet);
+  }
+}
+
+void processTcpPacket(int ethernetHeaderLength, const u_char *ipHeaderPtr,
+                      int ipHeaderLength, const struct pcap_pkthdr *pkthdr,
+                      const u_char *packet) {
+
+  const u_char *tcpHeaderPtr;
+  const u_char *payloadPtr;
+  int tcpHeaderLength;
+  int payloadLength;
+
+  tcpHeaderPtr = packet + ethernetHeaderLength + ipHeaderLength;
+  /* TCP header length is stored in the first half of the 12th byte in the TCP
+   *header
+   **
+   ** 0xF0 = 1111.0000
+   */
+
+  tcpHeaderLength = ((*(tcpHeaderPtr + 12)) & 0xF0) >> 4;
+  tcpHeaderLength = tcpHeaderLength * 4;
+  printf("TCP header length in bytes: %d\n", tcpHeaderLength);
+
+  u_char tcpHeader[tcpHeaderLength];
+  memcpy(tcpHeader, tcpHeaderPtr, tcpHeaderLength);
+
+  struct tcpHeader *extractedTcpHeader = extractTcpHeader(tcpHeader);
+  extractedTcpHeader->printTcpHeader(extractedTcpHeader);
+
+  int totalHeadersSize =
+      ethernetHeaderLength + ipHeaderLength + tcpHeaderLength;
+  printf("Size of all headers combined: %d\n", totalHeadersSize);
+
+  payloadLength = pkthdr->caplen - totalHeadersSize;
+  printf("Payload size: %d\n", payloadLength);
+  payloadPtr = packet + payloadLength;
+  printf("Memory address where payload begin: %p\n", payloadPtr);
+
+  printPayload(payloadPtr, payloadLength);
+
+  printf("\n");
+}
+
 // callback of pcap_loop for processing captured packet
 void callback(u_char *useless, const struct pcap_pkthdr *pkthdr,
               const u_char *packet) {
@@ -95,15 +181,17 @@ void callback(u_char *useless, const struct pcap_pkthdr *pkthdr,
    ** If the snapshot length set with pcap_open_live() is too small, you may not
    ** have the whole packet
    */
-  printf("\n\nPacket number [%d] \n", count++);
 
-  printf("Total packet available: %d bytes\n", pkthdr->caplen);
-  printf("Expected packet size: %d bytes\n", pkthdr->len);
+  // printf("\n\nPacket number [%d] \n", count++);
+
+  // printf("Total packet available: %d bytes\n", pkthdr->caplen);
+  // printf("Expected packet size: %d bytes\n", pkthdr->len);
 
   uint16_t etherType = determinePacketType(packet);
-  printPacketType(etherType);
+  // printPacketType(etherType);
 
   // Pointer to start point of headers
+  const u_char *ethernetHeaderPtr;
   const u_char *ipHeaderPtr;
   const u_char *tcpHeaderPtr;
   const u_char *payloadPtr;
@@ -128,14 +216,15 @@ void callback(u_char *useless, const struct pcap_pkthdr *pkthdr,
   memcpy(ethernetHeader, packet, ethernetHeaderLength);
   struct ethernetFrame *extractedEthernetFrame =
       extractEthernetFrame(ethernetHeader);
-  extractedEthernetFrame->printEtherFrame(extractedEthernetFrame);
+  // extractedEthernetFrame->printEtherFrame(extractedEthernetFrame);
+
+  // start of ip header
+  ipHeaderPtr = packet + ethernetHeaderLength;
 
   if (etherType == ETHERTYPE_IPV6) {
     // header length in ipv6 is fixed 40 bytes
     ipHeaderLength = 40;
   } else if (etherType == ETHERTYPE_IP) {
-    // start of ip header
-    ipHeaderPtr = packet + ethernetHeaderLength;
     // The second half of the firt byte (at byte offset 4 of the IP header)
     // contains the IP header length
     // & 0x0F is a bitwise AND operation.
@@ -150,58 +239,26 @@ void callback(u_char *useless, const struct pcap_pkthdr *pkthdr,
     // -> ipLength = 3 * 32 bits = 96 bits
     // -> 96 bits / 8 = 12 bytes
     ipHeaderLength = ipHeaderLength * 4;
-    printf("IP header length (IHL) in bytes: %d\n", ipHeaderLength);
-
-    // Protocol is always the 10th byte of the IP header
-    u_char protocol = *(ipHeaderPtr + 9);
-    if (protocol != IPPROTO_TCP) {
-      printf("Not a TCP packet. Skipping ...\n\n");
-      return;
-    }
-
-    // Source IP is the 12nd byte of the IP header
-    u_char srcIP[4], dstIP[4];
-    memcpy(srcIP, ipHeaderPtr + 12, 4);
-    printf("Source IP: ");
-    printIPAddr(srcIP);
-
-    memcpy(dstIP, ipHeaderPtr + 16, 4);
-    printf("Dest IP: ");
-    printIPAddr(dstIP);
-
-    tcpHeaderPtr = packet + ethernetHeaderLength + ipHeaderLength;
-    /* TCP header length is stored in the first half of the 12th byte in the TCP
-     *header
-     **
-     ** 0xF0 = 1111.0000
-     */
-
-    tcpHeaderLength = ((*(tcpHeaderPtr + 12)) & 0xF0) >> 4;
-    tcpHeaderLength = tcpHeaderLength * 4;
-    printf("TCP header length in bytes: %d\n", tcpHeaderLength);
-
-    u_char tcpHeader[tcpHeaderLength];
-    memcpy(tcpHeader, tcpHeaderPtr, tcpHeaderLength);
-
-    struct tcpHeader *extractedTcpHeader = extractTcpHeader(tcpHeader);
-    extractedTcpHeader->printTcpHeader(extractedTcpHeader);
-
-    int totalHeadersSize =
-        ethernetHeaderLength + ipHeaderLength + tcpHeaderLength;
-    printf("Size of all headers combined: %d\n", totalHeadersSize);
-
-    payloadLength = pkthdr->caplen - totalHeadersSize;
-    printf("Payload size: %d\n", payloadLength);
-    payloadPtr = packet + payloadLength;
-    printf("Memory address where payload begin: %p\n", payloadPtr);
-
-    printPayload(payloadPtr, payloadLength);
   }
 
-  printf("\n");
+  // Source IP is the 12nd byte of the IP header
+  u_char srcIP[4], dstIP[4];
+  memcpy(srcIP, ipHeaderPtr + 12, 4);
+
+  memcpy(dstIP, ipHeaderPtr + 16, 4);
+
+  // Protocol is always the 10th byte of the IP header
+  u_char protocol = *(ipHeaderPtr + 9);
+  if (protocol == IPPROTO_UDP) {
+    processUdpPacket(ethernetHeaderLength, ipHeaderPtr, ipHeaderLength, pkthdr,
+                     packet);
+  } else if (protocol == IPPROTO_TCP) {
+    processTcpPacket(ethernetHeaderLength, ipHeaderPtr, ipHeaderLength, pkthdr,
+                     packet);
+  }
 }
 
-void sniff(char *dev, char *protocol, int num_captured_packets) {
+void sniff(char *dev, int filter, char *protocol, int num_captured_packets) {
   bpf_u_int32 pMask; // subnet mask
   bpf_u_int32 pNet;  // network address not ip address
 
@@ -234,16 +291,18 @@ void sniff(char *dev, char *protocol, int num_captured_packets) {
     return;
   }
 
-  // Compile filter expression
-  if (pcap_compile(descr, &fp, protocol, 0, pNet) == -1) {
-    fprintf(stderr, "pcap_compile() failed: %s \n", pcap_geterr(descr));
-    return;
-  }
+  if (filter) {
+    // Compile filter expression
+    if (pcap_compile(descr, &fp, protocol, 0, pNet) == -1) {
+      fprintf(stderr, "pcap_compile() failed: %s \n", pcap_geterr(descr));
+      return;
+    }
 
-  // set the filter compiled above
-  if (pcap_setfilter(descr, &fp) == -1) {
-    fprintf(stderr, "pcap_setfilter() failed: %s \n", pcap_geterr(descr));
-    return;
+    // set the filter compiled above
+    if (pcap_setfilter(descr, &fp) == -1) {
+      fprintf(stderr, "pcap_setfilter() failed: %s \n", pcap_geterr(descr));
+      return;
+    }
   }
 
   // for every packet received, call the callback function
@@ -265,8 +324,6 @@ uint16_t determinePacketType(const u_char *packet) {
    * headers. Different packet types have different header lengths though, bute
    * the ethernet header is always the same (14 bytes)
    * */
-
-  printf("Ether type:");
   etherHeader = (struct ether_header *)packet;
   uint16_t etherType = ntohs(etherHeader->ether_type);
 
