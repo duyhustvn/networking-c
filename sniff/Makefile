@@ -1,19 +1,32 @@
-OBJECTS = sniff.o demo.o utils.c ethernet.o tcp.o
+# Compiler flags
+CC = gcc
+CFLAGS = -Wall
 
-main.out: ${OBJECTS}
-		cc ${OBJECTS} -o main.out -lpcap
+# Project files
+ODIR = obj
+LIBS = -lpcap
+EXE = main.out
 
-sniff.o: sniff.c sniff.h
-		cc -c sniff.c
+OBJS = sniff.o demo.o utils.o ethernet.o tcp.o dns.o udp.o
 
-demo.o: sniff.h demo.c
-		cc -c demo.c
+#
+# Debug build settings
+#
+DBGDIR = debug
+DBGEXE = $(DBGDIR)/$(EXE)
+DBGOBJS = $(addprefix $(DBGDIR)/, $(OBJS))
+DBGCFLAGS = -g
 
-utils.o: utils.h utils.c
-	cc -c utils.c
+.PHONY: debug clean
+#
+# Debug rules
+#
+debug: $(DBGEXE)
+$(DBGEXE): $(DBGOBJS)
+	$(CC) $(CFLAGS) $(DBGCFLAGS) -o $(DBGEXE) $^ $(LIBS)
+$(DBGDIR)/%.o: %.c
+	mkdir -p $(DBGDIR)
+	$(CC) -c $(CFLAGS) $(DBGCFLAGS) -o $@ $<
 
-tcp.o: tcp.h tcp.c
-	cc -c tcp.c
-
-ethernet.o: ethernet.h ethernet.c
-	cc -c ethernet.c
+clean:
+	rm -rf $(EXE) $(ODIR) $(DBGDIR)
