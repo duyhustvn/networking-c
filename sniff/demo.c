@@ -9,15 +9,17 @@ int main(int argc, char **argv) {
   char dev_buff[64] = {0};
   char errbuf[PCAP_ERRBUF_SIZE];
   char *protocol;
+  int filter;
   int num_captured_packets;
 
-  if (argc != 3) {
-    printf("Usage: [%s] [protocol] [number-of-packets]\n", argv[0]);
+  if (argc != 4) {
+    printf("Usage: [%s] [filter] [protocol] [number-of-packets]\n", argv[0]);
     return 0;
   }
 
-  protocol = argv[1];
-  num_captured_packets = (atoi)(argv[2]);
+  filter = (atoi)(argv[1]);
+  protocol = argv[2];
+  num_captured_packets = (atoi)(argv[3]);
 
   dev = "wlp0s20f3"; // default
   // Ask user to provide the interface name
@@ -44,5 +46,5 @@ int main(int argc, char **argv) {
   }
 
   // fetch the network address and network mask
-  sniff(dev, protocol, num_captured_packets);
+  sniff(dev, filter, protocol, num_captured_packets);
 }
