@@ -1,7 +1,4 @@
 #include <errno.h>
-#include <libnet.h>
-#include <libnet/libnet-headers.h>
-#include <libnet/libnet-structures.h>
 #include <net/ethernet.h>
 #include <netinet/in.h>
 #include <pcap.h>
@@ -171,7 +168,6 @@ void processTcpPacket(int ethernetHeaderLength, const u_char *ipHeaderPtr,
 // callback of pcap_loop for processing captured packet
 void callback(u_char *useless, const struct pcap_pkthdr *pkthdr,
               const u_char *packet) {
-  static int count = 1;
 
   /* The total packet length, including all headers and the data payload is
    ** stored in header->len and header->caplen. Caplen is the amount actually
@@ -191,10 +187,7 @@ void callback(u_char *useless, const struct pcap_pkthdr *pkthdr,
   // printPacketType(etherType);
 
   // Pointer to start point of headers
-  const u_char *ethernetHeaderPtr;
   const u_char *ipHeaderPtr;
-  const u_char *tcpHeaderPtr;
-  const u_char *payloadPtr;
 
   /* Header lengths in bytes
    ** The ethernet header length is always 14 bytes
@@ -209,13 +202,9 @@ void callback(u_char *useless, const struct pcap_pkthdr *pkthdr,
    */
   int ethernetHeaderLength = 14; //  bytes
   int ipHeaderLength;            // in bytes
-  int tcpHeaderLength;
-  int payloadLength;
 
   u_char ethernetHeader[ethernetHeaderLength];
   memcpy(ethernetHeader, packet, ethernetHeaderLength);
-  struct ethernetFrame *extractedEthernetFrame =
-      extractEthernetFrame(ethernetHeader);
   // extractedEthernetFrame->printEtherFrame(extractedEthernetFrame);
 
   // start of ip header
