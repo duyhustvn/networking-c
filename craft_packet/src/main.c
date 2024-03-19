@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <err.h>
 
 #include "process_file.h"
@@ -6,8 +7,27 @@
 
 #include <libnet/libnet-functions.h>
 
+
 int main() {
     char* fileName = "statics/ip.txt";
+
+    char *srcIP = getenv("SOURCE_IP");
+    if (!srcIP) {
+        errx(1, "ERROR: failed to load source ip from environment");
+        return -1;
+    } else {
+        warnx("srcIP: %s", srcIP);
+    }
+
+    char *srcMac = getenv("SOURCE_MAC");
+    if (!srcMac) {
+        errx(1, "ERROR: failed to load source mac from environment");
+        return -1;
+    } else {
+        warnx("srcMac: %s", srcMac);
+    }
+
+
 
     char errbuf[LIBNET_ERRBUF_SIZE];
     char* outputInterface = "wlp0s20f3";
@@ -25,8 +45,7 @@ int main() {
     }
 
     printf("l->injection_type: %d\n", l->injection_type);
-
-    readAndProcessFileByChunk(fileName, l);
+    readAndProcessFileByChunk(fileName, l, srcIP, srcMac);
 
     libnet_destroy(l);
     return 0;

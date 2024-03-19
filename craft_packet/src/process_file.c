@@ -13,7 +13,8 @@
 
 int i = 0;
 
-void processChunk(char* chunk, libnet_t* l) {
+
+void processChunk(char* chunk, libnet_t* l, char* srcIP, char* srcMac) {
     i++;
     // printf("chunk: %s\n\n", chunk);
     printf("chunk: %d\n", i);
@@ -23,17 +24,17 @@ void processChunk(char* chunk, libnet_t* l) {
     uint32_t ack = 3567497537;
     uint8_t control = 0x02; // sync
 
-    char *srcIP = "";
-    char *dstIP = "";
-    char *srcMac = "";
-    char *dstMac = "";
+    char *dstIP = "20.205.243.166";
+    char *dstMac = "00:1d:aa:9b:44:78";
 
 
     char errstr[1024];
+
+
     craftTcpPacket(l, srcPort, dstPort, seq, ack,  control,  srcIP,  dstIP,  srcMac,  dstMac, errstr);
 }
 
-int readAndProcessFileByChunk(char* fileName, libnet_t* l) {
+int readAndProcessFileByChunk(char* fileName, libnet_t* l, char* srcIP, char* srcMac) {
     FILE *f;
     char buffer[BUFFER_SIZE];
     size_t bytesRead;
@@ -64,7 +65,7 @@ int readAndProcessFileByChunk(char* fileName, libnet_t* l) {
            chunk[bytesRead+i] = '\0';
 
            // process chunk
-           processChunk(chunk, l);
+           processChunk(chunk, l, srcIP, srcMac);
 
            memset(chunk, 0, bytesRead);
        } else {

@@ -60,7 +60,6 @@ int craftTcpPacket(libnet_t* l, uint16_t srcPort, uint16_t dstPort, uint32_t seq
     int r;
     uint8_t* src_mac_int = libnet_hex_aton(srcMac, &r);
     if (src_mac_int == NULL) {
-        // sprintf(errstr, "ERROR: invalid source MAC address");
         errx(1, "ERROR: invalid source MAC address");
         return -1;
     }
