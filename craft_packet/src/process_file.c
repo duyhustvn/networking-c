@@ -22,15 +22,15 @@ void processChunk(char* chunk, libnet_t* l) {
     uint32_t seq = 2508113620;
     uint32_t ack = 3567497537;
     uint8_t control = 0x02; // sync
+
     char *srcIP = "";
     char *dstIP = "";
     char *srcMac = "";
     char *dstMac = "";
 
+
     char errstr[1024];
-    for (int i = 0; i < 10; i++) {
-        craftTcpPacket(l, srcPort, dstPort, seq, ack,  control,  srcIP,  dstIP,  srcMac,  dstMac, errstr);
-    }
+    craftTcpPacket(l, srcPort, dstPort, seq, ack,  control,  srcIP,  dstIP,  srcMac,  dstMac, errstr);
 }
 
 int readAndProcessFileByChunk(char* fileName, libnet_t* l) {

@@ -78,11 +78,12 @@ int craftTcpPacket(libnet_t* l, uint16_t srcPort, uint16_t dstPort, uint32_t seq
         0 /*size of payload*/,
         l /*libnet handle*/,
         0 /*libnet protocol tag*/);
-    if (etherTag == -1) {
-        // sprintf(errstr, "ERROR: on Ethernet packet craft: %s", libnet_geterror(l));
-        errx(1, "ERROR: on Ethernet packet craft: %s", libnet_geterror(l));
-        return -1;
-    }
+
+    // if (etherTag == -1) {
+    //     // sprintf(errstr, "ERROR: on Ethernet packet craft: %s", libnet_geterror(l));
+    //     errx(1, "ERROR: on Ethernet packet craft: %s", libnet_geterror(l));
+    //     return -1;
+    // }
 
     libnet_toggle_checksum(l, ipTag, LIBNET_ON);
 

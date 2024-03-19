@@ -7,7 +7,7 @@
 #include <libnet/libnet-functions.h>
 
 int main() {
-    char* fileName = "ip.txt";
+    char* fileName = "statics/ip.txt";
 
     char errbuf[LIBNET_ERRBUF_SIZE];
     char* outputInterface = "wlp0s20f3";
