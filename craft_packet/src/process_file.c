@@ -14,7 +14,7 @@
 int i = 0;
 
 
-void processChunk(char* chunk, libnet_t* l, uint32_t srcIP, uint8_t* srcMac) {
+void processChunk(char* chunk, libnet_t* l, uint32_t srcIP, uint8_t* srcMac, uint8_t* dstMac) {
     i++;
     // printf("chunk: %s\n\n", chunk);
     printf("chunk: %d\n", i);
@@ -24,24 +24,28 @@ void processChunk(char* chunk, libnet_t* l, uint32_t srcIP, uint8_t* srcMac) {
     uint32_t ack = 3567497537;
     uint8_t control = 0x02; // sync
 
-    char *dstIPStr = "20.205.243.166";
-    uint32_t dstIP = inet_addr(dstIPStr);
 
-    char *dstMacStr = "00:1d:aa:9b:44:78";
-    int r;
-    uint8_t* dstMac = libnet_hex_aton(dstMacStr, &r);
-    if (dstMac == NULL) {
-        // sprintf(errstr, "ERROR: invalid dest MAC address");
-        errx(1, "ERROR: invalid dest MAC address");
+    char delim[] = "\n";
+    char *ptr = strtok(chunk, delim);
+    while (ptr != NULL) {
+        char *dstIPStr = strdup(ptr);
+        uint32_t dstIP = inet_addr(dstIPStr);
+
+        // char *dstMacStr = "00:1d:aa:9b:44:78"; // ip address of the router that the computer running this program connected to
+        // int r;
+        // uint8_t* dstMac = libnet_hex_aton(dstMacStr, &r);
+        // if (dstMac == NULL) {
+        //     // sprintf(errstr, "ERROR: invalid dest MAC address");
+        //     errx(1, "ERROR: invalid dest MAC address");
+        // }
+
+        char errstr[1024];
+
+        libnet_clear_packet(l);
+        craftTcpPacket(l, srcPort, dstPort, seq, ack,  control,  srcIP,  dstIP,  srcMac,  dstMac, errstr);
+
+        ptr = strtok(NULL, delim);
     }
-
-    char errstr[1024];
-
-    libnet_clear_packet(l);
-    // for (int i = 0; i < 10; i++) {
-    craftTcpPacket(l, srcPort, dstPort, seq, ack,  control,  srcIP,  dstIP,  srcMac,  dstMac, errstr);
-    // }
-
 }
 
 int readAndProcessFileByChunk(libnet_t* l) {
@@ -49,7 +53,7 @@ int readAndProcessFileByChunk(libnet_t* l) {
     char buffer[BUFFER_SIZE];
     size_t bytesRead;
 
-    char fileName[] = "./statics/ip.txt";
+    char fileName[] = "./statics/ip";
 
     f = fopen(fileName, "r");
     if (f == NULL) {
@@ -57,8 +61,8 @@ int readAndProcessFileByChunk(libnet_t* l) {
         return -1;
     }
 
-    char srcIP[] = "192.168.1.6";
-    char srcMac[] = "38:df:eb:6a:9c:10";
+    char srcIP[] = "xxx";
+    char srcMac[] = "xxx";
 
     uint32_t srcIpInt = inet_addr(srcIP);
 
@@ -67,6 +71,13 @@ int readAndProcessFileByChunk(libnet_t* l) {
     if (srcMacInt == NULL) {
         errx(1, "ERROR: invalid source MAC address");
         return -1;
+    }
+
+    char *dstMacStr = "xxx"; // ip address of the router that the computer running this program connected to
+    uint8_t* dstMacInt = libnet_hex_aton(dstMacStr, &r);
+    if (dstMacInt == NULL) {
+        // sprintf(errstr, "ERROR: invalid dest MAC address");
+        errx(1, "ERROR: invalid dest MAC address");
     }
 
     // read file in chunk and process each chunk
@@ -89,7 +100,7 @@ int readAndProcessFileByChunk(libnet_t* l) {
            chunk[bytesRead+i] = '\0';
 
            // process chunk
-           processChunk(chunk, l, srcIpInt, srcMacInt);
+           processChunk(chunk, l, srcIpInt, srcMacInt, dstMacInt);
 
            memset(chunk, 0, bytesRead);
        } else {

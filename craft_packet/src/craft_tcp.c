@@ -72,19 +72,17 @@ int craftTcpPacket(libnet_t* l, uint16_t srcPort, uint16_t dstPort, uint32_t seq
     // }
 
     // printf("toggle check sum\n");
-    // libnet_toggle_checksum(l, ipTag, LIBNET_ON);
+    libnet_toggle_checksum(l, ipTag, LIBNET_ON);
 
-    // // printf("sending packet\n");
-    // int bytesSent = libnet_write(l);
-    // if (bytesSent == -1) {
-    //     // sprintf(errstr, "ERROR: write to : %s", libnet_geterror(l));
-    //     errx(1, "ERROR: write to : %s", libnet_geterror(l));
-    //     return -1;
-    // } else {
-    //     warn("send ok");
-    // }
+    // printf("sending packet\n");
+    int bytesSent = libnet_write(l);
+    if (bytesSent == -1) {
+        // sprintf(errstr, "ERROR: write to : %s", libnet_geterror(l));
+        errx(1, "ERROR: write to : %s", libnet_geterror(l));
+        return -1;
+    } else {
+        warn("send ok");
+    }
 
-    /* shutdown the interface */
-    // libnet_destroy(l);
     return 0;
 }
