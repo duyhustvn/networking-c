@@ -6,6 +6,6 @@
 
 #include <libnet.h>
 
-int craftTcpPacket(libnet_t* l, uint16_t srcPort, uint16_t dstPort, uint32_t seq, uint32_t ack, uint8_t control, char* srcIP, char* dstIP, char* srcMac, char* dstMac, char* errstr);
+int craftTcpPacket(libnet_t* l, uint16_t srcPort, uint16_t dstPort, uint32_t seq, uint32_t ack, uint8_t control, uint32_t srcIP, uint32_t dstIP, uint8_t* srcMac, uint8_t* dstMac, char* errstr);
 
 #endif // CRAFT_TCP_H_

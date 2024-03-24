@@ -9,24 +9,24 @@
 
 
 int main() {
-    char* fileName = "statics/ip.txt";
+    // char fileName[] = "statics/ip.txt";
 
-    char *srcIP = getenv("SOURCE_IP");
-    if (!srcIP) {
-        errx(1, "ERROR: failed to load source ip from environment");
-        return -1;
-    } else {
-        warnx("srcIP: %s", srcIP);
-    }
+    // char *srcIP = getenv("SOURCE_IP");
+    // if (!srcIP) {
+    //     errx(1, "ERROR: failed to load source ip from environment");
+    //     return -1;
+    // } else {
+    //     warnx("srcIP: %s", srcIP);
+    // }
 
-    char *srcMac = getenv("SOURCE_MAC");
-    if (!srcMac) {
-        errx(1, "ERROR: failed to load source mac from environment");
-        return -1;
-    } else {
-        warnx("srcMac: %s", srcMac);
-    }
-
+    // char* srcMac = getenv("SOURCE_MAC");
+    // if (!srcMac) {
+    //     errx(1, "ERROR: failed to load source mac from environment");
+    //     return -1;
+    // } else {
+    //     warnx("srcMac: %s", srcMac);
+    // }
+    // char srcMac[] = "38:df:eb:6a:9c:10";
 
 
     char errbuf[LIBNET_ERRBUF_SIZE];
@@ -45,7 +45,8 @@ int main() {
     }
 
     printf("l->injection_type: %d\n", l->injection_type);
-    readAndProcessFileByChunk(fileName, l, srcIP, srcMac);
+    readAndProcessFileByChunk(l);
+
 
     libnet_destroy(l);
     return 0;
