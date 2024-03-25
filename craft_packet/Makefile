@@ -31,7 +31,7 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) -c $(CFLAGS) $(DBGCFLAGS) -o $@ $< $(LIBS)
 
 run:
-	SOURCE_IP="192.168.1.6" SOURCE_MAC="28:df:eb:6a:8c:01" DEST_MAC="c8:5a:9f:8b:47:61" $(BUILD_EXE)
+	FILE="./statics/sample" SOURCE_IP="192.168.1.7" SOURCE_MAC="28:df:eb:6a:8c:01" DEST_MAC="c8:5a:9f:8b:47:63" DEVICE_INTERFACE="wlp0s20f3" $(BUILD_EXE)
 
 clean:
 	rm -rf $(EXE) $(ODIR) $(BUILD_DIR)

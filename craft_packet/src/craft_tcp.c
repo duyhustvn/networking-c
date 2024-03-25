@@ -80,9 +80,10 @@ int craftTcpPacket(libnet_t* l, uint16_t srcPort, uint16_t dstPort, uint32_t seq
         // sprintf(errstr, "ERROR: write to : %s", libnet_geterror(l));
         errx(1, "ERROR: write to : %s", libnet_geterror(l));
         return -1;
-    } else {
-        warn("send ok");
     }
+    // else {
+    //     warn("send ok");
+    // }
 
     return 0;
 }

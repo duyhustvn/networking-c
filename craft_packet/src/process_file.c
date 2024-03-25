@@ -44,7 +44,11 @@ int readAndProcessFileByChunk(libnet_t* l) {
     char buffer[BUFFER_SIZE];
     size_t bytesRead;
 
-    char fileName[] = "./statics/ip";
+    char *fileName = getenv("FILE");;
+    if (!fileName) {
+        errx(1, "ERROR: failed to load file from environment");
+        return -1;
+    }
 
     f = fopen(fileName, "r");
     if (f == NULL) {

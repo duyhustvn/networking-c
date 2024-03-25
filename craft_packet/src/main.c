@@ -9,29 +9,15 @@
 
 
 int main() {
-    // char fileName[] = "statics/ip.txt";
-
-    // char *srcIP = getenv("SOURCE_IP");
-    // if (!srcIP) {
-    //     errx(1, "ERROR: failed to load source ip from environment");
-    //     return -1;
-    // } else {
-    //     warnx("srcIP: %s", srcIP);
-    // }
-
-    // char* srcMac = getenv("SOURCE_MAC");
-    // if (!srcMac) {
-    //     errx(1, "ERROR: failed to load source mac from environment");
-    //     return -1;
-    // } else {
-    //     warnx("srcMac: %s", srcMac);
-    // }
-    // char srcMac[] = "38:df:eb:6a:9c:10";
-
-
     char errbuf[LIBNET_ERRBUF_SIZE];
-    char* outputInterface = "wlp0s20f3";
-    libnet_t *l = libnet_init(LIBNET_RAW4, outputInterface, errbuf);
+
+    char* devInterface  = getenv("DEVICE_INTERFACE");
+    if (!devInterface) {
+        errx(1, "ERROR: failed to load device interface from environment");
+        return -1;
+    }
+
+    libnet_t *l = libnet_init(LIBNET_RAW4, devInterface, errbuf);
     if (l == NULL) {
         // fprintf(stderr, "ERROR: getLibnetSocket(): libnet init failed %s\n", errbuf);
         errx(1, "ERROR: getLibnetSocket(): libnet init failed %s\n", errbuf);
