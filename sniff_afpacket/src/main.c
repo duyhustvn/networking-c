@@ -1,4 +1,5 @@
 // Reference: https://www.binarytides.com/packet-sniffer-code-in-c-using-linux-sockets-bsd-part-2/
+// https://csulrong.github.io/blogs/2022/03/10/linux-afpacket/
 
 #include<netinet/in.h>
 #include<errno.h>
@@ -19,6 +20,9 @@
 #include<sys/time.h>
 #include<sys/types.h>
 #include<unistd.h>
+#include<poll.h>
+
+#define POLL_TIMEOUT -1
 
 void ProcessPacket(unsigned char* , int);
 void print_ip_header(unsigned char* , int);
@@ -35,6 +39,8 @@ int main()
 {
 	int saddr_size , data_size;
 	struct sockaddr saddr;
+	struct pollfd fds;
+	int ret;
 
 	unsigned char *buffer = (unsigned char *) malloc(65536); //Its Big!
 
@@ -47,26 +53,39 @@ int main()
 
 	int sock_raw = socket( AF_PACKET , SOCK_RAW , htons(ETH_P_ALL)) ;
 	//setsockopt(sock_raw , SOL_SOCKET , SO_BINDTODEVICE , "eth0" , strlen("eth0")+ 1 );
-
 	if(sock_raw < 0)
 	{
 		//Print the error with proper message
 		perror("Socket Error");
 		return 1;
 	}
+
+	fds.fd = sock_raw;
+	fds.events = POLLIN;
+
+
 	while(1)
 	{
-		saddr_size = sizeof saddr;
-		//Receive a packet
-		data_size = recvfrom(sock_raw , buffer , 65536 , 0 , &saddr , (socklen_t*)&saddr_size);
-		if(data_size <0 )
-		{
-			printf("Recvfrom error , failed to get packets\n");
-			return 1;
+		ret = poll(&fds, 1, POLL_TIMEOUT);
+		if (ret < 0) {
+			continue;
 		}
-		//Now process the packet
-		ProcessPacket(buffer , data_size);
+
+		if (fds.revents & POLLIN) {
+			// Receive the packet
+			saddr_size = sizeof saddr;
+			//Receive a packet
+			data_size = recvfrom(sock_raw , buffer , 65536 , 0 , &saddr , (socklen_t*)&saddr_size);
+			if(data_size <0 )
+			{
+				printf("Recvfrom error , failed to get packets\n");
+				return 1;
+			}
+			//Now process the packet
+			ProcessPacket(buffer , data_size);
+		}
 	}
+
 	close(sock_raw);
 	printf("Finished");
 	return 0;
