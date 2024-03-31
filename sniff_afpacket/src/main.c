@@ -7,6 +7,7 @@
 #include<stdio.h>	//For standard things
 #include<stdlib.h>	//malloc
 #include<string.h>	//strlen
+#include<err.h>
 
 #include<netinet/ip_icmp.h>	//Provides declarations for icmp header
 #include<netinet/udp.h>	//Provides declarations for udp header
@@ -14,6 +15,7 @@
 #include<netinet/ip.h>	//Provides declarations for ip header
 #include<netinet/if_ether.h>	//For ETH_P_ALL
 #include<net/ethernet.h>	//For ether_header
+#include<net/if.h> // for network interface
 #include<sys/socket.h>
 #include<arpa/inet.h>
 #include<sys/ioctl.h>
@@ -21,6 +23,7 @@
 #include<sys/types.h>
 #include<unistd.h>
 #include<poll.h>
+#include <linux/if_packet.h>
 
 #define POLL_TIMEOUT -1
 
@@ -30,6 +33,7 @@ void print_tcp_packet(unsigned char * , int );
 void print_udp_packet(unsigned char * , int );
 void print_icmp_packet(unsigned char* , int );
 void PrintData (unsigned char* , int);
+int GetIfnumByDev(int fd, const char *ifname);
 
 FILE *logfile;
 struct sockaddr_in source,dest;
@@ -41,6 +45,8 @@ int main()
 	struct sockaddr saddr;
 	struct pollfd fds;
 	int ret;
+	int if_idx; // index of network interface
+	char dev_interface[] = "wlp0s20f3";
 
 	unsigned char *buffer = (unsigned char *) malloc(65536); //Its Big!
 
@@ -51,16 +57,33 @@ int main()
 	}
 	printf("Starting...\n");
 
-	int sock_raw = socket( AF_PACKET , SOCK_RAW , htons(ETH_P_ALL)) ;
-	//setsockopt(sock_raw , SOL_SOCKET , SO_BINDTODEVICE , "eth0" , strlen("eth0")+ 1 );
-	if(sock_raw < 0)
+	int sockfd = socket( AF_PACKET , SOCK_RAW , htons(ETH_P_ALL)) ; // socket file description
+	//setsockopt(sockfd , SOL_SOCKET , SO_BINDTODEVICE , "eth0" , strlen("eth0")+ 1 );
+	if(sockfd < 0)
 	{
 		//Print the error with proper message
 		perror("Socket Error");
 		return 1;
 	}
 
-	fds.fd = sock_raw;
+	if_idx = GetIfnumByDev(sockfd, dev_interface);
+	if (if_idx == -1) {
+		return 1;
+	}
+
+	// bind socket to a specific interface
+	struct sockaddr_ll bind_address;
+	memset(&bind_address, 0, sizeof(bind_address));
+	bind_address.sll_family = AF_PACKET;
+	bind_address.sll_protocol = htons(ETH_P_ALL);
+	bind_address.sll_ifindex = if_idx;
+
+	if (bind(sockfd, (struct sockaddr*)&bind_address, sizeof(bind_address)) == -1) {
+		perror("bind socket error");
+	}
+
+	// prepare for polling
+	fds.fd = sockfd;
 	fds.events = POLLIN;
 
 
@@ -75,7 +98,7 @@ int main()
 			// Receive the packet
 			saddr_size = sizeof saddr;
 			//Receive a packet
-			data_size = recvfrom(sock_raw , buffer , 65536 , 0 , &saddr , (socklen_t*)&saddr_size);
+			data_size = recvfrom(sockfd , buffer , 65536 , 0 , &saddr , (socklen_t*)&saddr_size);
 			if(data_size <0 )
 			{
 				printf("Recvfrom error , failed to get packets\n");
@@ -86,7 +109,7 @@ int main()
 		}
 	}
 
-	close(sock_raw);
+	close(sockfd);
 	printf("Finished");
 	return 0;
 }
@@ -347,4 +370,19 @@ void PrintData (unsigned char* data , int Size)
 			fprintf(logfile ,  "\n" );
 		}
 	}
+}
+
+int GetIfnumByDev(int fd, const char *ifname)
+{
+    struct ifreq ifr;
+
+    memset(&ifr, 0, sizeof(ifr));
+    strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+
+    if (ioctl(fd, SIOCGIFINDEX, &ifr) == -1) {
+        errx(1, "%s: failed to find interface: %s", ifname, strerror(errno));
+        return -1;
+    }
+
+    return ifr.ifr_ifindex;
 }
