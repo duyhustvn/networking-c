@@ -46,7 +46,6 @@ int main()
 	struct pollfd fds;
 	int ret;
 	int if_idx; // index of network interface
-	char dev_interface[] = "wlp0s20f3";
 
 	unsigned char *buffer = (unsigned char *) malloc(65536); //Its Big!
 
@@ -57,7 +56,13 @@ int main()
 	}
 	printf("Starting...\n");
 
-	int sockfd = socket( AF_PACKET , SOCK_RAW , htons(ETH_P_ALL)) ; // socket file description
+	char* dev_interface = getenv("DEVICE_INTERFACE");
+	if (dev_interface == NULL) {
+		errx(1, "ERROR: failed to load environment device interface");
+		return 1;
+	}
+
+	int sockfd = socket(AF_PACKET , SOCK_RAW , htons(ETH_P_ALL)) ; // socket file description
 	//setsockopt(sockfd , SOL_SOCKET , SO_BINDTODEVICE , "eth0" , strlen("eth0")+ 1 );
 	if(sockfd < 0)
 	{
@@ -85,7 +90,6 @@ int main()
 	// prepare for polling
 	fds.fd = sockfd;
 	fds.events = POLLIN;
-
 
 	while(1)
 	{
