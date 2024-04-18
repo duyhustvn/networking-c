@@ -41,6 +41,8 @@ int tcp=0,udp=0,icmp=0,others=0,igmp=0,total=0,i,j;
 
 int main()
 {
+	printf("program is running at process id: %ld\n", (long)getpid());
+
 	int saddr_size , data_size;
 	struct sockaddr saddr;
 	struct pollfd fds;
