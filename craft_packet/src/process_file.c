@@ -39,16 +39,10 @@ void processChunk(char* chunk, libnet_t* l, uint32_t srcIP, uint8_t* srcMac, uin
     }
 }
 
-int readAndProcessFileByChunk(libnet_t* l) {
+int readAndProcessFileByChunk(libnet_t* l, char *fileName, char *srcIP, char *srcMac, char *dstMac) {
     FILE *f;
     char buffer[BUFFER_SIZE];
     size_t bytesRead;
-
-    char *fileName = getenv("FILE");;
-    if (!fileName) {
-        errx(1, "ERROR: failed to load file from environment");
-        return -1;
-    }
 
     f = fopen(fileName, "r");
     if (f == NULL) {
@@ -56,22 +50,7 @@ int readAndProcessFileByChunk(libnet_t* l) {
         return -1;
     }
 
-    char *srcIP = getenv("SOURCE_IP");
-    if (!srcIP) {
-        errx(1, "ERROR: failed to load source ip from environment");
-        return -1;
-    } else {
-        warnx("srcIP: %s", srcIP);
-    }
     uint32_t srcIpInt = inet_addr(srcIP);
-
-    char* srcMac = getenv("SOURCE_MAC"); // mac address of victom
-    if (!srcMac) {
-        errx(1, "ERROR: failed to load source mac from environment");
-        return -1;
-    } else {
-        warnx("srcMac: %s", srcMac);
-    }
 
     int r;
     uint8_t* srcMacInt = libnet_hex_aton(srcMac, &r);
@@ -80,11 +59,10 @@ int readAndProcessFileByChunk(libnet_t* l) {
         return -1;
     }
 
-    char *dstMac =  getenv("DEST_MAC"); // ip address of the router that the computer running this program connected to
     uint8_t* dstMacInt = libnet_hex_aton(dstMac, &r);
     if (dstMacInt == NULL) {
-        // sprintf(errstr, "ERROR: invalid dest MAC address");
         errx(1, "ERROR: invalid dest MAC address");
+        return -1;
     }
 
     // read file in chunk and process each chunk
