@@ -9,7 +9,7 @@
 
 #include "data_queue.h"
 
-static void test_ip_enqueue(void **state) {
+static void test_ip_enqueue_dequeue(void **state) {
 
   struct IPQueue_ *q = (struct IPQueue_ *)malloc(sizeof(struct IPQueue_));
 
@@ -18,39 +18,63 @@ static void test_ip_enqueue(void **state) {
   };
 
   struct Test tests[] = {
-  {{"1", NULL, NULL}},
-  {{"2", NULL, NULL}},
-  {{"3", NULL, NULL}},
-  {{"4", NULL, NULL}},
+  {{"1", NULL}},
+  {{"2", NULL}},
+  {{"3", NULL}},
+  {{"4", NULL}},
   };
 
 
-  assert_null(q->top);
-  assert_null(q->bot);
+  assert_null(q->rear);
+  assert_null(q->front);
 
   IPEnqueue(q, &tests[0].d);
-  assert_string_equal(q->top->ips, "1");
-  assert_string_equal(q->bot->ips, "1");
+  assert_string_equal(q->front->ips, "1");
+  assert_string_equal(q->rear->ips, "1");
 
-  // bot -> top
   // 1 -> 2
   IPEnqueue(q, &tests[1].d);
-  assert_string_equal(q->top->ips, "2");
-  assert_string_equal(q->top->next->ips, "1");
-  assert_null(q->top->next->next);
+  assert_string_equal(q->front->ips, "1");
+  assert_string_equal(q->front->next->ips, "2");
+  assert_null(q->front->next->next);
 
-  // bot -> top
   // 1 -> 2 -> 3
   IPEnqueue(q, &tests[2].d);
-  assert_string_equal(q->top->ips, "3");
-  assert_string_equal(q->top->next->ips, "2");
-  assert_string_equal(q->top->next->next->ips, "1");
-  assert_null(q->top->next->next->next);
+  assert_string_equal(q->front->ips, "1");
+  assert_string_equal(q->front->next->ips, "2");
+  assert_string_equal(q->front->next->next->ips, "3");
+  assert_null(q->front->next->next->next);
+
+  // // 1 -> 2 -> 3 -> 4
+  IPEnqueue(q, &tests[3].d);
+  assert_string_equal(q->front->ips, "1");
+  assert_string_equal(q->front->next->ips, "2");
+  assert_string_equal(q->front->next->next->ips, "3");
+  assert_string_equal(q->front->next->next->next->ips, "4");
+  assert_null(q->front->next->next->next->next);
+
+  struct Data_ *data;
+  data = IPDequeue(q);
+  assert_string_equal(data->ips, "1");
+
+  data = IPDequeue(q);
+  assert_string_equal(data->ips, "2");
+
+
+  data = IPDequeue(q);
+  assert_string_equal(data->ips, "3");
+
+
+  data = IPDequeue(q);
+  assert_string_equal(data->ips, "4");
+
+  data = IPDequeue(q);
+  assert_null(data);
 }
 
 int main(void) {
   const struct CMUnitTest tests[] = {
-      cmocka_unit_test(test_ip_enqueue),
+      cmocka_unit_test(test_ip_enqueue_dequeue),
   };
 
   cmocka_set_message_output(CM_OUTPUT_SUBUNIT);

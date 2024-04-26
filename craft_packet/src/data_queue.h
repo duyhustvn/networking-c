@@ -7,22 +7,21 @@
 typedef struct Data_{
     char* ips;
     struct Data_ *next;
-    struct Data_ *prev;
 } Data;
 
 // TODO: free queue after used
-// add to top
-// remove from bottom
-// next top->bottom
-// prev bottom->top
+// add to rear
+// remove from front
+// next front -> rear
 typedef struct IPQueue_{
-    struct Data_ *top;
-    struct Data_ *bot;
+    struct Data_ *front;
+    struct Data_ *rear;
+
     uint32_t len;
 } IPQueue;
 
 void IPEnqueue(IPQueue*, struct Data_ *);
-struct IPQueue_ IPDequeue(IPQueue*);
+struct Data_ *IPDequeue(IPQueue*);
 void IPQueueFree(IPQueue*);
 
 #endif // DATA_QUEUE_H_
