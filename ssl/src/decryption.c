@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <err.h>
 
 #include <openssl/bio.h>
 #include <openssl/pem.h>
@@ -22,7 +23,13 @@ void decode_ssl_content(BIO *cert_bio) {
 }
 
 int main() {
-    FILE *f = fopen("certificate.pem", "r");
+    char *fileName = getenv("FILE");;
+    if (!fileName) {
+        errx(1, "ERROR: failed to load file from environment");
+        return -1;
+    }
+
+    FILE *f = fopen(fileName, "r");
     if (!f) {
         fprintf(stderr, "Error reading pem file");
         return 1;

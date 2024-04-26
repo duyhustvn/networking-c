@@ -1,0 +1,32 @@
+* This document simulates the process to generate certificate for k8s cluster
+** Generate self-signed root CA key pair
+- Generate private keys
+#+begin_src shell
+openssl genrsa -out ca.key 2048
+#+end_src
+
+- Certificate Signing Request
+#+begin_src shell
+openssl req -new -key ca.key -subj "/CN=KUBERNETES-CA" -out ca.csr
+#+end_src
+
+- Sign Certificate
+#+begin_src shell
+openssl x509 -req -in ca.csr -signkey ca.key -out ca.crt
+#+end_src
+
+** Generate admin user certificate
+- Generate private keys
+#+begin_src shell
+openssl genrsa -out admin.key 2048
+#+end_src
+
+- Certificate Signing Request
+#+begin_src shell
+openssl req -new -key admin.key -subj "/CN=kub-admin" -out admin.csr
+#+end_src
+
+- Sign Certificate with previous generated CA key pair
+#+begin_src shell
+openssl x509 -req -in admin.csr -CA ca.crt -CAkey ca.key -out admin.crt
+#+end_src

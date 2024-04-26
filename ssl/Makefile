@@ -1,3 +1,9 @@
+#  $@ The name of the target file (the one before the colon)
+#  $< The name of the first (or only) prerequisite file (the first one after the colon)
+#  $^ The names of all the prerequisite files (space-separated)
+#  $* The stem (the bit which matches the `%` wildcard in the rule definition.
+#
+
 # Compiler flags
 CC = gcc
 CFLAGS = -Wall
@@ -25,7 +31,7 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) -c $(CFLAGS) $(DBGCFLAGS) -o $@ $< $(LIBS)
 
 run:
-	$(BUILD_EXE)
+	FILE=tls_files/admin.crt $(BUILD_EXE)
 
 clean:
 	rm -rf $(BUILD_DIR)
