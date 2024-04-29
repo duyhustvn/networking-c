@@ -13,34 +13,6 @@
 // #define BUFFER_SIZE 1024
 #define BUFFER_SIZE 1024
 
-int i = 0;
-
-
-// void processChunk(char* chunk, libnet_t* l, uint32_t srcIP, uint8_t* srcMac, uint8_t* dstMac) {
-//     i++;
-//     // printf("chunk: %s\n\n", chunk);
-//     printf("chunk: %d\n", i);
-//     uint16_t srcPort = 49996; // random or fixed port
-//     uint16_t dstPort = 443;
-//     uint32_t seq = 2508113620;
-//     uint32_t ack = 3567497537;
-//     uint8_t control = 0x02; // sync
-//
-//
-//     char delim[] = "\n";
-//     char *ptr = strtok(chunk, delim);
-//     while (ptr != NULL) {
-//         char *dstIPStr = strdup(ptr);
-//         uint32_t dstIP = inet_addr(dstIPStr);
-//
-//         char errstr[1024];
-//         libnet_clear_packet(l);
-//         craftTcpPacket(l, srcPort, dstPort, seq, ack,  control,  srcIP,  dstIP,  srcMac,  dstMac, errstr);
-//
-//         ptr = strtok(NULL, delim);
-//     }
-// }
-
 
 void processChunk(IPQueue *q, char* chunk, libnet_t* l, uint32_t srcIP, uint8_t* srcMac, uint8_t* dstMac) {
     char delim[] = "\n";
@@ -128,6 +100,12 @@ int readAndProcessFileByChunk(libnet_t* l, char *fileName, char *srcIP, char *sr
         threadDatas[t].threadID = t + 1;
         threadDatas[t].countPackets = 0;
         threadDatas[t].q = q;
+
+        threadDatas[t].srcIp = srcIpInt;
+        threadDatas[t].srcMac = srcMacInt;
+        threadDatas[t].dstMac = dstMacInt;
+
+        threadDatas[t].l = l;
     }
 
     int rc;
@@ -150,9 +128,12 @@ int readAndProcessFileByChunk(libnet_t* l, char *fileName, char *srcIP, char *sr
         printf("Main: completed join with thread %ld having status of: %s\n", t, (char *)status);
     }
 
+    int sumPkt = 0;
     for (long t = 0; t < numsThreads; t++) {
-        printf("Thread %d packet: %d\n", numsThreads, threadDatas[i].countPackets);
+        printf("Thread %ld packet: %d\n", t, threadDatas[t].countPackets);
+        sumPkt += threadDatas[t].countPackets;
     }
+    printf("The total number of package from all thread %d\n", sumPkt);
 
     IPQueueTraversal(q);
 
