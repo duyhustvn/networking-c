@@ -1,4 +1,6 @@
 #include "data_queue.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 
 void IPEnqueue(IPQueue* q, struct Data_ *d) {
@@ -8,7 +10,7 @@ void IPEnqueue(IPQueue* q, struct Data_ *d) {
 
     d->next = NULL;
     // Queue is empty
-    if (q->len == 0) {
+    if (q->front == NULL) {
         q->rear = q->front = d;
         q->len = 1;
     } else {
@@ -37,4 +39,20 @@ struct Data_ *IPDequeue(IPQueue* q) {
 
     data->next = NULL;
     return data;
+};
+
+
+void IPQueueFree(IPQueue* q) {
+    free(q);
+};
+
+
+void IPQueueTraversal(IPQueue* q) {
+    printf("Number of elements in queue: %d\n", q->len);
+    struct Data_ *tmp = q->front;
+    while (tmp != NULL) {
+        printf("%s -> ", tmp->ips);
+        tmp = tmp->next;
+    }
+    printf("NULL\n");
 };

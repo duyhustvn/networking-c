@@ -23,5 +23,6 @@ typedef struct IPQueue_{
 void IPEnqueue(IPQueue*, struct Data_ *);
 struct Data_ *IPDequeue(IPQueue*);
 void IPQueueFree(IPQueue*);
+void IPQueueTraversal(IPQueue*);
 
 #endif // DATA_QUEUE_H_

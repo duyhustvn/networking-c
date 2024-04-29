@@ -53,6 +53,8 @@ static void test_ip_enqueue_dequeue(void **state) {
   assert_string_equal(q->front->next->next->next->ips, "4");
   assert_null(q->front->next->next->next->next);
 
+  IPQueueTraversal(q);
+
   struct Data_ *data;
   data = IPDequeue(q);
   assert_string_equal(data->ips, "1");
@@ -60,16 +62,16 @@ static void test_ip_enqueue_dequeue(void **state) {
   data = IPDequeue(q);
   assert_string_equal(data->ips, "2");
 
-
   data = IPDequeue(q);
   assert_string_equal(data->ips, "3");
-
 
   data = IPDequeue(q);
   assert_string_equal(data->ips, "4");
 
   data = IPDequeue(q);
   assert_null(data);
+
+  IPQueueFree(q);
 }
 
 int main(void) {

@@ -8,7 +8,7 @@
 #include <libnet/libnet-functions.h>
 
 void usage(char* name) {
-    printf("usage: %s [-a source_ip] [-b source_mac] [-c destination_mac] [-d file_name] [-e device_interface]", name);
+    printf("usage: %s [-a source_ip] [-b source_mac] [-c destination_mac] [-d file_name] [-e device_interface]\n\n", name);
 }
 
 int main(int argc, char **argv) {
@@ -68,14 +68,16 @@ int main(int argc, char **argv) {
                 break;
             case 'd':
                 fileName = optarg;
+                break;
             case 'e':
                 devInterface = optarg;
+                break;
             default:
                 usage(programName);
         }
     }
 
-    printf("srcIP: %s srcMac: %s dstMac: %s fileName: %s devInterface: %s", srcIP, srcMac, dstMac, fileName, devInterface);
+    printf("From argument srcIP: %s srcMac: %s dstMac: %s fileName: %s devInterface: %s \n\n", srcIP, srcMac, dstMac, fileName, devInterface);
 
     if (!srcIP || !srcMac || !dstMac || !fileName || ! devInterface) {
         usage(programName);
