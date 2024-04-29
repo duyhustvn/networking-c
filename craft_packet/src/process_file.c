@@ -8,6 +8,7 @@
 #include "craft_tcp.h"
 #include "process_file.h"
 #include "data_queue.h"
+#include "thread_process.h"
 
 // #define BUFFER_SIZE 1024
 #define BUFFER_SIZE 1024
@@ -39,6 +40,7 @@ int i = 0;
 //         ptr = strtok(NULL, delim);
 //     }
 // }
+
 
 void processChunk(IPQueue *q, char* chunk, libnet_t* l, uint32_t srcIP, uint8_t* srcMac, uint8_t* dstMac) {
     char delim[] = "\n";
@@ -119,6 +121,38 @@ int readAndProcessFileByChunk(libnet_t* l, char *fileName, char *srcIP, char *sr
        memset(buffer, 0, BUFFER_SIZE);
     }
 
+    int numsThreads = 1;
+    pthread_t threads[numsThreads];
+    struct threadData_ threadDatas[numsThreads];
+    for (long t = 0; t < numsThreads; t++) {
+        threadDatas[t].threadID = t + 1;
+        threadDatas[t].countPackets = 0;
+        threadDatas[t].q = q;
+    }
+
+    int rc;
+    for (long t = 0; t < numsThreads; t++) {
+        rc = pthread_create(&threads[t], NULL, process, (void*)&threadDatas[t]);
+        if (rc) {
+            printf("ERROR in creating thread, return code is %d\n", rc);
+            exit(1);
+        }
+    }
+
+    void *status;
+    for (long t = 0; t < numsThreads; t++) {
+        rc = pthread_join(threads[t], &status);
+        if (rc) {
+            printf("ERROR in joining thread return code is %d\n", rc);
+            exit(1);
+        }
+
+        printf("Main: completed join with thread %ld having status of: %s\n", t, (char *)status);
+    }
+
+    for (long t = 0; t < numsThreads; t++) {
+        printf("Thread %d packet: %d\n", numsThreads, threadDatas[i].countPackets);
+    }
 
     IPQueueTraversal(q);
 

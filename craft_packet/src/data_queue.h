@@ -1,8 +1,10 @@
 #ifndef DATA_QUEUE_H_
 #define DATA_QUEUE_H_
 
+
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef struct Data_{
     char* ips;
@@ -24,5 +26,6 @@ void IPEnqueue(IPQueue*, struct Data_ *);
 struct Data_ *IPDequeue(IPQueue*);
 void IPQueueFree(IPQueue*);
 void IPQueueTraversal(IPQueue*);
+bool IPQueueEmpty(IPQueue*);
 
 #endif // DATA_QUEUE_H_
