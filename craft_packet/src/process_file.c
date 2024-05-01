@@ -7,14 +7,13 @@
 
 #include "craft_tcp.h"
 #include "process_file.h"
-#include "data_queue.h"
 #include "thread_process.h"
 
 // #define BUFFER_SIZE 1024
 #define BUFFER_SIZE 1024
 
 
-void processChunk(IPQueue *q, char* chunk, libnet_t* l, uint32_t srcIP, uint8_t* srcMac, uint8_t* dstMac) {
+void processChunk(IPQueue *q, char* chunk, uint32_t srcIP, uint8_t* srcMac, uint8_t* dstMac) {
     char delim[] = "\n";
     char *ptr = strtok(chunk, delim);
     Data *data;
@@ -33,17 +32,22 @@ void processChunk(IPQueue *q, char* chunk, libnet_t* l, uint32_t srcIP, uint8_t*
     }
 }
 
-int readAndProcessFileByChunk(libnet_t* l, char *fileName, char *srcIP, char *srcMac, char *dstMac) {
+// int readAndProcessFileByChunk(libnet_t* l, char *fileName, char *srcIP, char *srcMac, char *dstMac) {
+int readAndProcessFileByChunk(config cfg) {
     FILE *f;
     char buffer[BUFFER_SIZE];
     size_t bytesRead;
 
+    char* filePath = cfg.filePath;
+    char* srcIP = cfg.srcIP;
+    char* srcMac = cfg.srcMac;
+    char *dstMac = cfg.dstMac;
 
     IPQueue *q = (IPQueue *)malloc(sizeof(IPQueue));
 
-    f = fopen(fileName, "r");
+    f = fopen(filePath, "r");
     if (f == NULL) {
-        errx(1, "failed to open file %s", fileName);
+        errx(1, "failed to open file %s", filePath);
         return -1;
     }
 
@@ -63,6 +67,8 @@ int readAndProcessFileByChunk(libnet_t* l, char *fileName, char *srcIP, char *sr
     }
 
     // read file in chunk and process each chunk
+    // read 1024 bytes first
+    // if it is in the middle of line, continue to read the whole line
     while (1) {
        bytesRead = fread(buffer, 1, BUFFER_SIZE, f);
 
@@ -82,7 +88,7 @@ int readAndProcessFileByChunk(libnet_t* l, char *fileName, char *srcIP, char *sr
            chunk[bytesRead+i] = '\0';
 
            // process chunk
-           processChunk(q, chunk, l, srcIpInt, srcMacInt, dstMacInt);
+           processChunk(q, chunk, srcIpInt, srcMacInt, dstMacInt);
 
            memset(chunk, 0, bytesRead);
        } else {
@@ -93,7 +99,7 @@ int readAndProcessFileByChunk(libnet_t* l, char *fileName, char *srcIP, char *sr
        memset(buffer, 0, BUFFER_SIZE);
     }
 
-    int numsThreads = 1;
+    int numsThreads = 4;
     pthread_t threads[numsThreads];
     struct threadData_ threadDatas[numsThreads];
     for (long t = 0; t < numsThreads; t++) {
@@ -104,8 +110,6 @@ int readAndProcessFileByChunk(libnet_t* l, char *fileName, char *srcIP, char *sr
         threadDatas[t].srcIp = srcIpInt;
         threadDatas[t].srcMac = srcMacInt;
         threadDatas[t].dstMac = dstMacInt;
-
-        threadDatas[t].l = l;
     }
 
     int rc;

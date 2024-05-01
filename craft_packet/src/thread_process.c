@@ -1,4 +1,5 @@
 #include "thread_process.h"
+#include <libnet/libnet-functions.h>
 
 
 void *process(void *threadArg) {
@@ -24,10 +25,20 @@ void *process(void *threadArg) {
         uint32_t dstIP = inet_addr(dstIPStr);
 
         char errstr[1024];
-        libnet_clear_packet(data->l);
-        craftTcpPacket(data->l, srcPort, dstPort, seq, ack,  control,  data->srcIp,  dstIP,  data->srcMac,  data->dstMac, errstr);
 
-        printf("threadID: %d ip: %s\n", threadID, ip);
+        char errbuf[LIBNET_ERRBUF_SIZE];
+        char *devInterface = "wlp0s20f3";
+        libnet_t *l = libnet_init(LIBNET_RAW4, devInterface, errbuf);
+        if (l == NULL) {
+            // fprintf(stderr, "ERROR: getLibnetSocket(): libnet init failed %s\n", errbuf);
+            printf("ERROR: libnet init failed %s\n", errbuf);
+            continue;
+        }
+        libnet_clear_packet(l);
+        craftTcpPacket(l, srcPort, dstPort, seq, ack,  control,  data->srcIp,  dstIP,  data->srcMac,  data->dstMac, errstr);
+        libnet_destroy(l);
+
+        // printf("threadID: %d ip: %s\n", threadID, ip);
         data->countPackets++;
     }
 

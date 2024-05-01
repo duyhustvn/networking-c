@@ -4,6 +4,7 @@
 
 #include "process_file.h"
 #include "craft_tcp.h"
+#include "config.h"
 
 #include <libnet/libnet-functions.h>
 
@@ -54,6 +55,7 @@ int main(int argc, char **argv) {
     char *srcIP, *srcMac, *dstMac;
     char *fileName;
     char* devInterface;
+
     int c;
     while((c = getopt(argc, argv, "a:b:c:d:e:")) != -1) {
         switch (c) {
@@ -83,9 +85,11 @@ int main(int argc, char **argv) {
         usage(programName);
     }
 
+
+    config cfg = {.srcIP = srcIP, .srcMac = srcMac, .dstMac = dstMac, .filePath = fileName, .deviceInterface = devInterface};
+
     libnet_t *l = libnet_init(LIBNET_RAW4, devInterface, errbuf);
     if (l == NULL) {
-        // fprintf(stderr, "ERROR: getLibnetSocket(): libnet init failed %s\n", errbuf);
         errx(1, "ERROR: getLibnetSocket(): libnet init failed %s\n", errbuf);
         return -1;
     }
@@ -97,8 +101,7 @@ int main(int argc, char **argv) {
     }
 
     printf("l->injection_type: %d\n", l->injection_type);
-    readAndProcessFileByChunk(l, fileName, srcIP, srcMac, dstMac);
-
+    readAndProcessFileByChunk(cfg);
 
     libnet_destroy(l);
     return 0;
