@@ -1,3 +1,4 @@
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <err.h>
@@ -5,16 +6,37 @@
 #include "process_file.h"
 #include "craft_tcp.h"
 #include "config.h"
+#include "util_signal.h"
 
 #include <libnet/libnet-functions.h>
+
+volatile sig_atomic_t sigterm_count = 0;
+volatile sig_atomic_t sigsegv_count = 0;
+volatile sig_atomic_t sigint_count = 0;
+
+static void signalHandlerSigint(int sig) {
+    sigint_count = 1;
+}
+
+static void signalHandlerSigsegv(int sig) {
+    sigsegv_count++;
+    printf("sigsegv_count: %d\n", sigsegv_count);
+}
 
 void usage(char* name) {
     printf("usage: %s [-a source_ip] [-b source_mac] [-c destination_mac] [-d file_name] [-e device_interface]\n\n", name);
 }
 
+void initSignalHandler() {
+    utilSignalHandlerSetup(SIGINT, signalHandlerSigint);
+    utilSignalHandlerSetup(SIGSEGV, signalHandlerSigsegv);
+}
+
 int main(int argc, char **argv) {
     char* programName = "smuf_ip";
     char errbuf[LIBNET_ERRBUF_SIZE];
+
+    initSignalHandler();
 
     // char* devInterface  = getenv("DEVICE_INTERFACE");
     // if (!devInterface) {
@@ -104,5 +126,8 @@ int main(int argc, char **argv) {
     readAndProcessFileByChunk(cfg);
 
     libnet_destroy(l);
+
+    printf("sigsegv_count: %d\n", sigsegv_count);
+
     return 0;
 }
