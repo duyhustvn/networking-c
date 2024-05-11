@@ -26,7 +26,7 @@ void processChunk(IPQueue *q, char* chunk, uint32_t srcIP, uint8_t* srcMac, uint
             free(data);
             continue;
         }
-        data->ips = dstIPStr;
+        data->ip = dstIPStr;
         IPEnqueue(q, data);
         ptr = strtok(NULL, delim);
     }

@@ -19,7 +19,7 @@ void *process(void *threadArg) {
     IPQueue *q = data->q;
     while (!IPQueueEmpty(q)) {
         Data* packet = IPDequeue(q);
-        char* ip = packet->ips;
+        char* ip = packet->ip;
 
         char *dstIPStr = strdup(ip);
         uint32_t dstIP = inet_addr(dstIPStr);

@@ -7,7 +7,7 @@
 #include <stdbool.h>
 
 typedef struct Data_{
-    char* ips;
+    char* ip;
     struct Data_ *next;
 } Data;
 

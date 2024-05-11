@@ -29,44 +29,44 @@ static void test_ip_enqueue_dequeue(void **state) {
   assert_null(q->front);
 
   IPEnqueue(q, &tests[0].d);
-  assert_string_equal(q->front->ips, "1");
-  assert_string_equal(q->rear->ips, "1");
+  assert_string_equal(q->front->ip, "1");
+  assert_string_equal(q->rear->ip, "1");
 
   // 1 -> 2
   IPEnqueue(q, &tests[1].d);
-  assert_string_equal(q->front->ips, "1");
-  assert_string_equal(q->front->next->ips, "2");
+  assert_string_equal(q->front->ip, "1");
+  assert_string_equal(q->front->next->ip, "2");
   assert_null(q->front->next->next);
 
   // 1 -> 2 -> 3
   IPEnqueue(q, &tests[2].d);
-  assert_string_equal(q->front->ips, "1");
-  assert_string_equal(q->front->next->ips, "2");
-  assert_string_equal(q->front->next->next->ips, "3");
+  assert_string_equal(q->front->ip, "1");
+  assert_string_equal(q->front->next->ip, "2");
+  assert_string_equal(q->front->next->next->ip, "3");
   assert_null(q->front->next->next->next);
 
   // // 1 -> 2 -> 3 -> 4
   IPEnqueue(q, &tests[3].d);
-  assert_string_equal(q->front->ips, "1");
-  assert_string_equal(q->front->next->ips, "2");
-  assert_string_equal(q->front->next->next->ips, "3");
-  assert_string_equal(q->front->next->next->next->ips, "4");
+  assert_string_equal(q->front->ip, "1");
+  assert_string_equal(q->front->next->ip, "2");
+  assert_string_equal(q->front->next->next->ip, "3");
+  assert_string_equal(q->front->next->next->next->ip, "4");
   assert_null(q->front->next->next->next->next);
 
   IPQueueTraversal(q);
 
   struct Data_ *data;
   data = IPDequeue(q);
-  assert_string_equal(data->ips, "1");
+  assert_string_equal(data->ip, "1");
 
   data = IPDequeue(q);
-  assert_string_equal(data->ips, "2");
+  assert_string_equal(data->ip, "2");
 
   data = IPDequeue(q);
-  assert_string_equal(data->ips, "3");
+  assert_string_equal(data->ip, "3");
 
   data = IPDequeue(q);
-  assert_string_equal(data->ips, "4");
+  assert_string_equal(data->ip, "4");
 
   data = IPDequeue(q);
   assert_null(data);

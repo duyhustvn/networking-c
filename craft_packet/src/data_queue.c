@@ -50,13 +50,13 @@ void IPQueueFree(IPQueue* q) {
 void IPQueueTraversal(IPQueue* q) {
     printf("Number of elements in queue: %d\n", q->len);
     if (q->len > 0) {
-        printf("front: %s\n", q->front->ips);
-        printf("rear: %s\n", q->rear->ips);
+        printf("front: %s\n", q->front->ip);
+        printf("rear: %s\n", q->rear->ip);
     }
 
     struct Data_ *tmp = q->front;
     while (tmp != NULL) {
-        printf("%s -> ", tmp->ips);
+        printf("%s -> ", tmp->ip);
         tmp = tmp->next;
     }
     printf("NULL\n");
