@@ -64,5 +64,5 @@ void IPQueueTraversal(IPQueue* q) {
 
 
 bool IPQueueEmpty(IPQueue* q) {
-    return q->len == 0;
+    return q->len <= 0 || q->front == NULL || q->rear == NULL;
 };

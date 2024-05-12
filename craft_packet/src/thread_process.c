@@ -19,6 +19,9 @@ void *process(void *threadArg) {
     IPQueue *q = data->q;
     while (!IPQueueEmpty(q)) {
         Data* packet = IPDequeue(q);
+        if (packet == NULL) {
+            continue;
+        }
         char* ip = packet->ip;
 
         char *dstIPStr = strdup(ip);
