@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
     char* programName = "smuf_ip";
     char errbuf[LIBNET_ERRBUF_SIZE];
 
-    initSignalHandler();
+    // initSignalHandler();
 
     // char* devInterface  = getenv("DEVICE_INTERFACE");
     // if (!devInterface) {

@@ -1,4 +1,5 @@
 #include "data_queue.h"
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -49,7 +50,7 @@ void IPQueueFree(IPQueue* q) {
 
 void IPQueueTraversal(IPQueue* q) {
     printf("Number of elements in queue: %d\n", q->len);
-    if (q->len > 0) {
+    if (q->front != NULL) {
         printf("front: %s\n", q->front->ip);
         printf("rear: %s\n", q->rear->ip);
     }
@@ -64,5 +65,16 @@ void IPQueueTraversal(IPQueue* q) {
 
 
 bool IPQueueEmpty(IPQueue* q) {
-    return q->len <= 0 || q->front == NULL || q->rear == NULL;
+    if (q->len <= 0 || q->front == NULL || q->rear == NULL) {
+        printf("QUEUE IS EMPTY\n");
+        printf("q->len: %d\n", q->len);
+        if (q->front == NULL) {
+            printf("front is NULL\n");
+        }
+        if (q->rear == NULL) {
+            printf("rear is NULL\n");
+        }
+        return true;
+    };
+    return false;
 };
