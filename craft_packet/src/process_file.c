@@ -6,6 +6,7 @@
 #include <err.h>
 
 #include "craft_tcp.h"
+#include "data_queue.h"
 #include "process_file.h"
 #include "thread_process.h"
 
@@ -43,7 +44,7 @@ int readAndProcessFileByChunk(config cfg) {
     char* srcMac = cfg.srcMac;
     char *dstMac = cfg.dstMac;
 
-    IPQueue *q = (IPQueue *)malloc(sizeof(IPQueue));
+    IPQueue *q = IPQueueAlloc();
 
     f = fopen(filePath, "r");
     if (f == NULL) {

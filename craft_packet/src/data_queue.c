@@ -1,8 +1,18 @@
 #include "data_queue.h"
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
+
+IPQueue *IPQueueAlloc(void) {
+    IPQueue *q = (IPQueue *)malloc(sizeof(IPQueue));
+    if (q == NULL) {
+        return NULL;
+    }
+    pthread_mutex_init(&q->mutex, NULL);
+    return q;
+};
 
 void IPEnqueue(IPQueue* q, struct Data_ *d) {
     if (d == NULL) {
@@ -23,6 +33,7 @@ void IPEnqueue(IPQueue* q, struct Data_ *d) {
 
 
 struct Data_ *IPDequeue(IPQueue* q) {
+    pthread_mutex_lock(&q->mutex);
     if (q->front == NULL) {
         return NULL;
     }
@@ -39,11 +50,13 @@ struct Data_ *IPDequeue(IPQueue* q) {
     q->len--;
 
     data->next = NULL;
+    pthread_mutex_unlock(&q->mutex);
     return data;
 };
 
 
 void IPQueueFree(IPQueue* q) {
+    pthread_mutex_destroy(&q->mutex);
     free(q);
 };
 

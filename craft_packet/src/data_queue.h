@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <pthread.h>
 
 typedef struct Data_{
     char* ip;
@@ -20,10 +21,13 @@ typedef struct IPQueue_{
     struct Data_ *rear;
 
     uint32_t len;
+
+    pthread_mutex_t mutex;
 } IPQueue;
 
 void IPEnqueue(IPQueue*, struct Data_ *);
 struct Data_ *IPDequeue(IPQueue*);
+IPQueue *IPQueueAlloc(void);
 void IPQueueFree(IPQueue*);
 void IPQueueTraversal(IPQueue*);
 bool IPQueueEmpty(IPQueue*);
