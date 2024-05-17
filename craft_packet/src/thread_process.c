@@ -1,5 +1,6 @@
 #include "thread_process.h"
 #include <libnet/libnet-functions.h>
+#include <stdlib.h>
 
 
 void *process(void *threadArg) {
@@ -17,6 +18,7 @@ void *process(void *threadArg) {
     printf("Thread %d starting \n", threadID);
 
     IPQueue *q = data->q;
+
     while (!IPQueueEmpty(q)) {
         Data* packet = IPDequeue(q);
         if (packet == NULL) {
@@ -28,7 +30,6 @@ void *process(void *threadArg) {
         uint32_t dstIP = inet_addr(dstIPStr);
 
         char errstr[1024];
-
         char errbuf[LIBNET_ERRBUF_SIZE];
         char *devInterface = "wlp0s20f3";
         libnet_t *l = libnet_init(LIBNET_RAW4, devInterface, errbuf);
@@ -43,6 +44,11 @@ void *process(void *threadArg) {
 
         // printf("threadID: %d ip: %s\n", threadID, ip);
         data->countPackets++;
+
+        free(packet->ip);
+        free(packet->next);
+        free(packet);
+        free(dstIPStr);
     }
 
     pthread_exit(NULL);

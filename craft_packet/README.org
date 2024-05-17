@@ -1,0 +1,187 @@
+#+title: README
+
+* Build program
+#+begin_src shell
+make build
+#+end_src
+
+* Run program
+#+begin_src shell
+sudo make run
+#+end_src
+
+* Fix memory leak
+** Valgrind
+#+begin_src shell
+VERSION=3.23.0
+curl -L https://sourceware.org/pub/valgrind/valgrind-$VERSION.tar.bz2 | tar xj
+cd valgrind-$VERSION
+./configure
+make
+sudo make install
+#+end_src
+
+** Fix memory leak
+*** Run valgrind to check memory leak
+This document records the memory leak of program running with 20.000 ip
+#+begin_src shell
+sudo make valgrind-check
+#+end_src
+
+- Output
+#+begin_src shell
+==342275==
+==342275== HEAP SUMMARY:
+==342275==     in use at exit: 91,744 bytes in 6,002 blocks
+==342275==   total heap usage: 20,019 allocs, 14,017 frees, 1,275,000 bytes allocated
+==342275==
+==342275== 6 bytes in 1 blocks are definitely lost in loss record 1 of 5
+==342275==    at 0x484880F: malloc (vg_replace_malloc.c:446)
+==342275==    by 0x4884A6F: libnet_hex_aton (in /usr/lib/x86_64-linux-gnu/libnet.so.1.7.0)
+==342275==    by 0x10994A: readAndProcessFileByChunk (process_file.c:58)
+==342275==    by 0x10AA18: main (main.c:126)
+==342275==
+==342275== 6 bytes in 1 blocks are definitely lost in loss record 2 of 5
+==342275==    at 0x484880F: malloc (vg_replace_malloc.c:446)
+==342275==    by 0x4884A6F: libnet_hex_aton (in /usr/lib/x86_64-linux-gnu/libnet.so.1.7.0)
+==342275==    by 0x10998D: readAndProcessFileByChunk (process_file.c:64)
+==342275==    by 0x10AA18: main (main.c:126)
+==342275==
+==342275== 29,866 bytes in 2,000 blocks are definitely lost in loss record 4 of 5
+==342275==    at 0x484880F: malloc (vg_replace_malloc.c:446)
+==342275==    by 0x493858E: strdup (strdup.c:42)
+==342275==    by 0x10A55D: process (thread_process.c:28)
+==342275==    by 0x4924AC2: start_thread (pthread_create.c:442)
+==342275==    by 0x49B5A03: clone (clone.S:100)
+==342275==
+==342275== 61,866 (32,000 direct, 29,866 indirect) bytes in 2,000 blocks are definitely lost in loss record 5 of 5
+==342275==    at 0x484880F: malloc (vg_replace_malloc.c:446)
+==342275==    by 0x1097ED: processChunk (process_file.c:24)
+==342275==    by 0x109B9A: readAndProcessFileByChunk (process_file.c:92)
+==342275==    by 0x10AA18: main (main.c:126)
+==342275==
+==342275== LEAK SUMMARY:
+==342275==    definitely lost: 61,878 bytes in 4,002 blocks
+==342275==    indirectly lost: 29,866 bytes in 2,000 blocks
+==342275==      possibly lost: 0 bytes in 0 blocks
+==342275==    still reachable: 0 bytes in 0 blocks
+==342275==         suppressed: 0 bytes in 0 blocks
+==342275==
+==342275== For lists of detected and suppressed errors, rerun with: -s
+==342275== ERROR SUMMARY: 33 errors from 6 contexts (suppressed: 0 from 0)
+#+end_src
+
+*** Find the root cause and fix
+**** Error 1
+#+begin_src shell
+==342275== 6 bytes in 1 blocks are definitely lost in loss record 1 of 5
+==342275==    at 0x484880F: malloc (vg_replace_malloc.c:446)
+==342275==    by 0x4884A6F: libnet_hex_aton (in /usr/lib/x86_64-linux-gnu/libnet.so.1.7.0)
+==342275==    by 0x10994A: readAndProcessFileByChunk (process_file.c:58)
+==342275==    by 0x10AA18: main (main.c:126)
+
+==342275== 6 bytes in 1 blocks are definitely lost in loss record 2 of 5
+==342275==    at 0x484880F: malloc (vg_replace_malloc.c:446)
+==342275==    by 0x4884A6F: libnet_hex_aton (in /usr/lib/x86_64-linux-gnu/libnet.so.1.7.0)
+==342275==    by 0x10998D: readAndProcessFileByChunk (process_file.c:64)
+==342275==    by 0x10AA18: main (main.c:126)
+#+end_src
+
+- Root cause
+#+begin_src shell
+uint8_t* srcMacInt = libnet_hex_aton(srcMac, &r);
+uint8_t* dstMacInt = libnet_hex_aton(srcMac, &r);
+#+end_src
+
+*lib_hex_aton* requires us to free the return value
+
+- Fix
+#+begin_src shell
+free(srcMacInt);
+free(dstMacInt);
+#+end_src
+
+- After fix
+#+begin_src shell
+==413614== HEAP SUMMARY:
+==413614==     in use at exit: 91,732 bytes in 6,000 blocks
+==413614==   total heap usage: 20,019 allocs, 14,019 frees, 1,275,000 bytes allocated
+==413614==
+==413614== 29,866 bytes in 2,000 blocks are definitely lost in loss record 2 of 3
+==413614==    at 0x484880F: malloc (vg_replace_malloc.c:446)
+==413614==    by 0x493858E: strdup (strdup.c:42)
+==413614==    by 0x10A57B: process (thread_process.c:28)
+==413614==    by 0x4924AC2: start_thread (pthread_create.c:442)
+==413614==    by 0x49B5A03: clone (clone.S:100)
+==413614==
+==413614== 61,866 (32,000 direct, 29,866 indirect) bytes in 2,000 blocks are definitely lost in loss record 3 of 3
+==413614==    at 0x484880F: malloc (vg_replace_malloc.c:446)
+==413614==    by 0x1097ED: processChunk (process_file.c:24)
+==413614==    by 0x109B9A: readAndProcessFileByChunk (process_file.c:92)
+==413614==    by 0x10AA36: main (main.c:126)
+==413614==
+==413614== LEAK SUMMARY:
+==413614==    definitely lost: 61,866 bytes in 4,000 blocks
+==413614==    indirectly lost: 29,866 bytes in 2,000 blocks
+==413614==      possibly lost: 0 bytes in 0 blocks
+==413614==    still reachable: 0 bytes in 0 blocks
+==413614==         suppressed: 0 bytes in 0 blocks
+==413614==
+==413614== For lists of detected and suppressed errors, rerun with: -s
+==413614== ERROR SUMMARY: 31 errors from 4 contexts (suppressed: 0 from 0)
+#+end_src
+
+****  Error 2
+- Root cause
+#+begin_src shell
+Data* packet = IPDequeue(q);
+#+end_src
+The dequeued packet is not free
+
+- Fix
+#+begin_src shell
+free(packet->ip); # thread_process.c line 48
+free(packet->next);
+free(packet);
+#+end_src
+
+- After fix
+#+begin_src shell
+==489547== HEAP SUMMARY:
+==489547==     in use at exit: 29,866 bytes in 2,000 blocks
+==489547==   total heap usage: 20,019 allocs, 18,019 frees, 1,275,000 bytes allocated
+==489547==
+==489547== 29,866 bytes in 2,000 blocks are definitely lost in loss record 1 of 1
+==489547==    at 0x484880F: malloc (vg_replace_malloc.c:446)
+==489547==    by 0x493858E: strdup (strdup.c:42)
+==489547==    by 0x10A57B: process (thread_process.c:29)
+==489547==    by 0x4924AC2: start_thread (pthread_create.c:442)
+==489547==    by 0x49B5A03: clone (clone.S:100)
+==489547==
+==489547== LEAK SUMMARY:
+==489547==    definitely lost: 29,866 bytes in 2,000 blocks
+==489547==    indirectly lost: 0 bytes in 0 blocks
+==489547==      possibly lost: 0 bytes in 0 blocks
+==489547==    still reachable: 0 bytes in 0 blocks
+==489547==         suppressed: 0 bytes in 0 blocks
+==489547==
+==489547== For lists of detected and suppressed errors, rerun with: -s
+==489547== ERROR SUMMARY: 30 errors from 3 contexts (suppressed: 0 from 0)
+#+end_src
+
+- Fix
+#+begin_src shell
+free(dstIPStr); # thread_process.c line 51
+#+end_src
+
+- After fix
+#+begin_src shell
+==492253== HEAP SUMMARY:
+==492253==     in use at exit: 0 bytes in 0 blocks
+==492253==   total heap usage: 20,019 allocs, 20,019 frees, 1,275,000 bytes allocated
+==492253==
+==492253== All heap blocks were freed -- no leaks are possible
+==492253==
+==492253== For lists of detected and suppressed errors, rerun with: -s
+==492253== ERROR SUMMARY: 29 errors from 2 contexts (suppressed: 0 from 0)
+#+end_src
