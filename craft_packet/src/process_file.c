@@ -24,7 +24,7 @@ void processChunk(IPQueue *q, char* chunk, uint32_t srcIP, uint8_t* srcMac, uint
         data = (Data*)malloc(sizeof(Data));
         if (data == NULL) {
             printf("Failed to assign memory\n");
-            free(data);
+            free(dstIPStr);
             continue;
         }
         data->ip = dstIPStr;
@@ -139,6 +139,10 @@ int readAndProcessFileByChunk(config cfg) {
         sumPkt += threadDatas[t].countPackets;
     }
     printf("The total number of package from all thread %d\n", sumPkt);
+
+    // cleanup
+    free(srcMacInt);
+    free(dstMacInt);
 
     IPQueueTraversal(q);
 
