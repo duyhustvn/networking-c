@@ -3,12 +3,14 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
 #include <err.h>
 
 #include "craft_tcp.h"
 #include "data_queue.h"
 #include "process_file.h"
 #include "thread_process.h"
+#include "util_cpu.h"
 
 // #define BUFFER_SIZE 1024
 #define BUFFER_SIZE 1024
@@ -70,6 +72,12 @@ int readAndProcessFileByChunk(config cfg) {
     // read file in chunk and process each chunk
     // read 1024 bytes first
     // if it is in the middle of line, continue to read the whole line
+    long seconds, useconds;
+    double total_time;
+
+    warnx("START READING DATA FROM FILE\n");
+    struct timeval start, end;
+    gettimeofday(&start, NULL);
     while (1) {
        bytesRead = fread(buffer, 1, BUFFER_SIZE, f);
 
@@ -99,8 +107,22 @@ int readAndProcessFileByChunk(config cfg) {
 
        memset(buffer, 0, BUFFER_SIZE);
     }
+    gettimeofday(&end, NULL);
+    seconds  = end.tv_sec  - start.tv_sec;
+    useconds = end.tv_usec - start.tv_usec;
 
-    int numsThreads = 4;
+    total_time = seconds + useconds / 1e6;
+    warnx("FINISH READING DATA FROM FILE after %f seconds\n", total_time);
+
+    int numsThreads;
+    uint16_t numCpu = getNumberOfProcessorsOnline();
+    warnx("Number of online cpus: %d\n", numCpu);
+    if (numCpu == 0) {
+        numsThreads = 4;
+    } else {
+        numsThreads = numCpu;
+    }
+
     pthread_t threads[numsThreads];
     struct threadData_ threadDatas[numsThreads];
     for (long t = 0; t < numsThreads; t++) {

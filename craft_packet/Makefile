@@ -10,7 +10,7 @@ CFLAGS = -Wall
 LIBS = -lpcap -lnet
 EXE = smurf_ip
 
-OBJS = craft_tcp.o process_file.o data_queue.o thread_process.o util_signal.o main.o
+OBJS = craft_tcp.o process_file.o data_queue.o thread_process.o util_signal.o util_cpu.o main.o
 
 SRC_DIR = src
 #
