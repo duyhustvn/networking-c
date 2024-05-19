@@ -15,6 +15,6 @@ typedef struct IPCircleLinkedList_ {
 IPCircleLinkedList *IPCircleLinkedListAlloc();
 void IPCircleLinkedListFree(IPCircleLinkedList*);
 void IPCicleLinkedListInsertAtTheEnd(IPCircleLinkedList*, Data*);
-Data* Next(IPCircleLinkedList*);
+Data* IPCircleLinkedListNext(IPCircleLinkedList*);
 
 #endif // DATA_CIRCLE_LINKED_LIST_H_

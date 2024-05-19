@@ -7,6 +7,7 @@ IPCircleLinkedList *IPCircleLinkedListAlloc() {
     if (ll == NULL) {
         return NULL;
     }
+    ll->last = NULL;
     ll->len = 0;
     return ll;
 };
@@ -27,7 +28,7 @@ void IPCicleLinkedListInsertAtTheEnd(IPCircleLinkedList *ll, Data *data) {
     ll->len++;
 };
 
-Data* Next(IPCircleLinkedList *ll) {
+Data* IPCircleLinkedListNext(IPCircleLinkedList *ll) {
     Data* data = ll->last;
     ll->last = ll->last->next;
     return data;
