@@ -41,10 +41,15 @@ run:
 clean:
 	rm -rf $(BUILD_DIR)
 
-test: $(BUILD_DIR)/data_queue.o src/data_queue_test.c
+test_queue: ${BUILD_DIR}/data_queue.o src/data_queue_test.c
 	gcc -o data_queue_test.o $^ -lcmocka -lm
 	./data_queue_test.o
 	rm ./data_queue_test.o
+
+test_circle_linked_list: ${BUILD_DIR}/data_circle_linked_list.o src/data_circle_linked_list_test.c
+	gcc -o data_circle_linked_list_test.o $^ -lcmocka -lm
+	./data_circle_linked_list_test.o
+	rm ./data_circle_linked_list_test.o
 
 valgrind-check:
 	valgrind --leak-check=yes --track-origins=yes ${BUILD_EXE} -a 192.168.101.3 -b 28:df:eb:6a:8c:01 -c 3c:ff:d8:c1:d9:70 -d statics/sample -e wlp0s20f3

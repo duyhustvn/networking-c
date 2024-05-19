@@ -27,6 +27,7 @@ static void test_ip_enqueue_dequeue(void **state) {
 
   assert_null(q->rear);
   assert_null(q->front);
+  assert_int_equal(q->len, 0);
 
   IPEnqueue(q, &tests[0].d);
   assert_string_equal(q->front->ip, "1");

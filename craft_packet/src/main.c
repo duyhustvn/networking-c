@@ -33,6 +33,12 @@ void initSignalHandler() {
 }
 
 int main(int argc, char **argv) {
+
+    long seconds, useconds;
+    double total_time;
+    struct timeval start, end;
+    gettimeofday(&start, NULL);
+
     char* programName = "smuf_ip";
     char errbuf[LIBNET_ERRBUF_SIZE];
 
@@ -128,6 +134,13 @@ int main(int argc, char **argv) {
     libnet_destroy(l);
 
     printf("sigsegv_count: %d\n", sigsegv_count);
+
+    gettimeofday(&end, NULL);
+    seconds  = end.tv_sec  - start.tv_sec;
+    useconds = end.tv_usec - start.tv_usec;
+
+    total_time = seconds + useconds / 1e6;
+    warnx("FINISH PROGRAM after %f seconds\n", total_time);
 
     return 0;
 }
