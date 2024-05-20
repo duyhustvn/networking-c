@@ -1,12 +1,15 @@
 
+#include <pthread.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
 #include <err.h>
+#include <unistd.h>
 
 #include "craft_tcp.h"
+#include "data_circle_linked_list.h"
 #include "data_queue.h"
 #include "process_file.h"
 #include "thread_process.h"
@@ -15,11 +18,13 @@
 // #define BUFFER_SIZE 1024
 #define BUFFER_SIZE 1024
 
+uint64_t line = 0;
 
-void processChunk(IPQueue *q, char* chunk, uint32_t srcIP, uint8_t* srcMac, uint8_t* dstMac) {
+void processChunk(IPCircleLinkedList *lls[], int numThreads, char* chunk, uint32_t srcIP, uint8_t* srcMac, uint8_t* dstMac) {
     char delim[] = "\n";
     char *ptr = strtok(chunk, delim);
     Data *data;
+
     while (ptr != NULL) {
         char *dstIPStr = strdup(ptr);
 
@@ -30,9 +35,14 @@ void processChunk(IPQueue *q, char* chunk, uint32_t srcIP, uint8_t* srcMac, uint
             continue;
         }
         data->ip = dstIPStr;
-        IPEnqueue(q, data);
+        data->next = NULL;
+        int threadIdx = line % numThreads;
+        warnx("threadIdx: %d", threadIdx);
+        IPCicleLinkedListInsertAtTheEnd(lls[threadIdx], data);
         ptr = strtok(NULL, delim);
     }
+
+    line++;
 }
 
 // int readAndProcessFileByChunk(libnet_t* l, char *fileName, char *srcIP, char *srcMac, char *dstMac) {
@@ -46,7 +56,21 @@ int readAndProcessFileByChunk(config cfg) {
     char* srcMac = cfg.srcMac;
     char *dstMac = cfg.dstMac;
 
-    IPQueue *q = IPQueueAlloc();
+    int numsThreads;
+    uint16_t numCpu = getNumberOfProcessorsOnline();
+    warnx("Number of online cpus: %d\n", numCpu);
+    if (numCpu == 0) {
+        numsThreads = 4;
+    } else {
+        numsThreads = numCpu;
+    }
+
+
+    IPCircleLinkedList *lls[numsThreads];
+    for (int i = 0; i < numsThreads; i++) {
+        lls[i] = IPCircleLinkedListAlloc();
+    }
+
 
     f = fopen(filePath, "r");
     if (f == NULL) {
@@ -97,7 +121,7 @@ int readAndProcessFileByChunk(config cfg) {
            chunk[bytesRead+i] = '\0';
 
            // process chunk
-           processChunk(q, chunk, srcIpInt, srcMacInt, dstMacInt);
+           processChunk(lls, numsThreads, chunk, srcIpInt, srcMacInt, dstMacInt);
 
            memset(chunk, 0, bytesRead);
        } else {
@@ -107,6 +131,7 @@ int readAndProcessFileByChunk(config cfg) {
 
        memset(buffer, 0, BUFFER_SIZE);
     }
+
     gettimeofday(&end, NULL);
     seconds  = end.tv_sec  - start.tv_sec;
     useconds = end.tv_usec - start.tv_usec;
@@ -114,21 +139,13 @@ int readAndProcessFileByChunk(config cfg) {
     total_time = seconds + useconds / 1e6;
     warnx("FINISH READING DATA FROM FILE after %f seconds\n", total_time);
 
-    int numsThreads;
-    uint16_t numCpu = getNumberOfProcessorsOnline();
-    warnx("Number of online cpus: %d\n", numCpu);
-    if (numCpu == 0) {
-        numsThreads = 4;
-    } else {
-        numsThreads = numCpu;
-    }
 
     pthread_t threads[numsThreads];
     struct threadData_ threadDatas[numsThreads];
     for (long t = 0; t < numsThreads; t++) {
         threadDatas[t].threadID = t + 1;
         threadDatas[t].countPackets = 0;
-        threadDatas[t].q = q;
+        threadDatas[t].ll = lls[t];
 
         threadDatas[t].srcIp = srcIpInt;
         threadDatas[t].srcMac = srcMacInt;
@@ -144,6 +161,12 @@ int readAndProcessFileByChunk(config cfg) {
         }
     }
 
+
+    // https://sites.ualberta.ca/dept/chemeng/AIX-43/share/man/info/C/a_doc_lib/aixprggd/genprogc/term_threads.htm
+    sleep(5);
+
+
+    /* Wait for all threads to finish */
     void *status;
     for (long t = 0; t < numsThreads; t++) {
         rc = pthread_join(threads[t], &status);
@@ -162,13 +185,29 @@ int readAndProcessFileByChunk(config cfg) {
     }
     printf("The total number of package from all thread %d\n", sumPkt);
 
-    // cleanup
+
+    // for (int i = 0; i < numsThreads; i++) {
+    //     printf("\n\nTHREAD %d\n", i);
+    //     IPCicleLinkedListTraversal(lls[i]);
+    // }
+
+    /*
+     * CLEAN UP
+     */
+
+    pthread_exit(NULL);
+
     free(srcMacInt);
     free(dstMacInt);
 
-    IPQueueTraversal(q);
 
-    IPQueueFree(q);
+    for (int i = 0; i < numsThreads; i++) {
+        printf("CLEAN LINKEDLIST THREAD %d\n", i);
+        IPCircleLinkedListFree(lls[i]);
+    }
+
+    printf("\n\n");
+    // close file
     fclose(f);
 
     return 0;

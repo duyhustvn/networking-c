@@ -3,14 +3,15 @@
 #  $^ The names of all the prerequisite files (space-separated)
 #  $* The stem (the bit which matches the `%` wildcard in the rule definition.
 # Compiler flags
-CC = gcc
+# CC = gcc
+CC = clang
 CFLAGS = -Wall
 
 # Project files
 LIBS = -lpcap -lnet
 EXE = smurf_ip
 
-OBJS = craft_tcp.o process_file.o data_queue.o thread_process.o util_signal.o util_cpu.o main.o
+OBJS = craft_tcp.o process_file.o data_queue.o data_circle_linked_list.o thread_process.o util_signal.o util_cpu.o main.o
 
 SRC_DIR = src
 #

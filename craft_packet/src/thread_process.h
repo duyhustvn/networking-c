@@ -5,19 +5,18 @@
 #include <string.h>
 #include <libnet.h>
 
+#include "data_circle_linked_list.h"
 #include "data_queue.h"
 #include "craft_tcp.h"
 
 typedef struct threadData_ {
     int threadID;
     int countPackets;
-    IPQueue* q;
+    IPCircleLinkedList* ll;
 
     uint32_t srcIp;
     uint8_t* srcMac;
     uint8_t* dstMac;
-
-    libnet_t* l;
 } threadData;
 
 

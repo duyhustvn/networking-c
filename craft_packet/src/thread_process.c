@@ -1,4 +1,5 @@
 #include "thread_process.h"
+#include "data_circle_linked_list.h"
 #include <libnet/libnet-functions.h>
 #include <stdlib.h>
 
@@ -17,10 +18,10 @@ void *process(void *threadArg) {
 
     printf("Thread %d starting \n", threadID);
 
-    IPQueue *q = data->q;
+    IPCircleLinkedList *ll = data->ll;
 
-    while (!IPQueueEmpty(q)) {
-        Data* packet = IPDequeue(q);
+    while (1) {
+        Data* packet = IPCircleLinkedListNext(ll);
         if (packet == NULL) {
             continue;
         }
@@ -45,9 +46,9 @@ void *process(void *threadArg) {
         // printf("threadID: %d ip: %s\n", threadID, ip);
         data->countPackets++;
 
-        free(packet->ip);
-        free(packet->next);
-        free(packet);
+        // free(packet->ip);
+        // free(packet->next);
+        // free(packet);
         free(dstIPStr);
     }
 

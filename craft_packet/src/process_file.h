@@ -4,9 +4,9 @@
 #include <libnet.h>
 
 #include "config.h"
-#include "data_queue.h"
+#include "data_circle_linked_list.h"
 
 int readAndProcessFileByChunk(config cfg);
-void processChunk(IPQueue *q, char* chunk, uint32_t srcIP, uint8_t* srcMac, uint8_t* dstMac);
+void processChunk(IPCircleLinkedList **lls,  int numThreads, char* chunk, uint32_t srcIP, uint8_t* srcMac, uint8_t* dstMac);
 
 #endif // PROCESS_FILE_H_
