@@ -6,13 +6,13 @@
 
 
 void *process(void *threadArg) {
-    int lastState, lastType;
 
     // enable cancellation
-    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &lastState);
+    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 
     // set cancel type to deferred, thread only be canceled at cancellation point
-    pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, &lastType);
+    // pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, &lastType);
+    pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
 
     uint16_t srcPort = 49996; // random or fixed port
     uint16_t dstPort = 443;

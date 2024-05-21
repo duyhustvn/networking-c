@@ -37,7 +37,6 @@ void processChunk(IPCircleLinkedList *lls[], int numThreads, char* chunk, uint32
         data->ip = dstIPStr;
         data->next = NULL;
         int threadIdx = line % numThreads;
-        warnx("threadIdx: %d", threadIdx);
         IPCicleLinkedListInsertAtTheEnd(lls[threadIdx], data);
         ptr = strtok(NULL, delim);
     }
@@ -163,7 +162,7 @@ int readAndProcessFileByChunk(config cfg) {
 
 
     // https://sites.ualberta.ca/dept/chemeng/AIX-43/share/man/info/C/a_doc_lib/aixprggd/genprogc/term_threads.htm
-    sleep(5);
+    sleep(cfg.timeout);
 
     for (long t = 0; t < numsThreads; t++) {
         pthread_cancel(threads[t]);
@@ -178,15 +177,14 @@ int readAndProcessFileByChunk(config cfg) {
             exit(1);
         }
 
-        // if (status == PTHREAD_CANCELED) {
-        //     warnx("main(): joined to thread %ld, status=PTHREAD_CANCELED", t);
-        // } else {
-        //     warnx("main(): joined to thread %ld", t);
-        // }
-
-        printf("Main: completed join with thread %ld having status of: %s\n", t, (char *)status);
+        if (status == PTHREAD_CANCELED) {
+            warnx("main(): joined to thread %ld, status=PTHREAD_CANCELED", t);
+        } else {
+            warnx("main(): joined to thread %ld", t);
+        }
     }
 
+    warnx("STATISTICS");
     int sumPkt = 0;
     for (long t = 0; t < numsThreads; t++) {
         printf("Thread %ld packet: %d\n", t, threadDatas[t].countPackets);
@@ -204,9 +202,9 @@ int readAndProcessFileByChunk(config cfg) {
      * CLEAN UP
      */
 
+    warnx("CLEAN UP");
     free(srcMacInt);
     free(dstMacInt);
-
 
     for (int i = 0; i < numsThreads; i++) {
         printf("CLEAN LINKEDLIST THREAD %d\n", i);

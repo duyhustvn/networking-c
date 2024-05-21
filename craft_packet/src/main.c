@@ -24,7 +24,7 @@ static void signalHandlerSigsegv(int sig) {
 }
 
 void usage(char* name) {
-    printf("usage: %s [-a source_ip] [-b source_mac] [-c destination_mac] [-d file_name] [-e device_interface]\n\n", name);
+    printf("usage: %s [-a source_ip] [-b source_mac] [-c destination_mac] [-d file_name] [-e device_interface] [-f timeout]\n\n", name);
 }
 
 void initSignalHandler() {
@@ -83,9 +83,11 @@ int main(int argc, char **argv) {
     char *srcIP, *srcMac, *dstMac;
     char *fileName;
     char* devInterface;
+    char* timeoutStr; // the time program run
+    int timeout;
 
     int c;
-    while((c = getopt(argc, argv, "a:b:c:d:e:")) != -1) {
+    while((c = getopt(argc, argv, "a:b:c:d:e:f:")) != -1) {
         switch (c) {
             case 'a':
                 srcIP = optarg;
@@ -102,19 +104,26 @@ int main(int argc, char **argv) {
             case 'e':
                 devInterface = optarg;
                 break;
+            case 'f':
+                timeoutStr = optarg;
+                timeout = atoi(timeoutStr);
+                if (timeout <= 0) {
+                    timeout = 5;
+                }
+                break;
             default:
                 usage(programName);
         }
     }
 
-    printf("From argument srcIP: %s srcMac: %s dstMac: %s fileName: %s devInterface: %s \n\n", srcIP, srcMac, dstMac, fileName, devInterface);
+    printf("From argument srcIP: %s srcMac: %s dstMac: %s fileName: %s devInterface: %s timeout: %d \n\n", srcIP, srcMac, dstMac, fileName, devInterface, timeout);
 
     if (!srcIP || !srcMac || !dstMac || !fileName || ! devInterface) {
         usage(programName);
     }
 
 
-    config cfg = {.srcIP = srcIP, .srcMac = srcMac, .dstMac = dstMac, .filePath = fileName, .deviceInterface = devInterface};
+    config cfg = {.srcIP = srcIP, .srcMac = srcMac, .dstMac = dstMac, .filePath = fileName, .deviceInterface = devInterface, .timeout = timeout};
 
     libnet_t *l = libnet_init(LIBNET_RAW4, devInterface, errbuf);
     if (l == NULL) {

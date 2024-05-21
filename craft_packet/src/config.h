@@ -7,6 +7,7 @@ typedef struct config_ {
     char *dstMac;
     char *deviceInterface;
     char *filePath;
+    int   timeout;
 } config;
 
 #endif // CONFIG_H_

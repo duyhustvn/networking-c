@@ -42,7 +42,7 @@ void IPCicleLinkedListInsertAtTheEnd(IPCircleLinkedList *ll, Data *data) {
             ll->last = data;
         }
         ll->len++;
-        printf("len: %d\n\n", ll->len);
+        // printf("len: %d\n\n", ll->len);
     }
 };
 
