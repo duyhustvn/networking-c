@@ -165,6 +165,9 @@ int readAndProcessFileByChunk(config cfg) {
     // https://sites.ualberta.ca/dept/chemeng/AIX-43/share/man/info/C/a_doc_lib/aixprggd/genprogc/term_threads.htm
     sleep(5);
 
+    for (long t = 0; t < numsThreads; t++) {
+        pthread_cancel(threads[t]);
+    }
 
     /* Wait for all threads to finish */
     void *status;
@@ -174,6 +177,12 @@ int readAndProcessFileByChunk(config cfg) {
             printf("ERROR in joining thread return code is %d\n", rc);
             exit(1);
         }
+
+        // if (status == PTHREAD_CANCELED) {
+        //     warnx("main(): joined to thread %ld, status=PTHREAD_CANCELED", t);
+        // } else {
+        //     warnx("main(): joined to thread %ld", t);
+        // }
 
         printf("Main: completed join with thread %ld having status of: %s\n", t, (char *)status);
     }
@@ -194,8 +203,6 @@ int readAndProcessFileByChunk(config cfg) {
     /*
      * CLEAN UP
      */
-
-    pthread_exit(NULL);
 
     free(srcMacInt);
     free(dstMacInt);

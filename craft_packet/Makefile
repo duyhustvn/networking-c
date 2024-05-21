@@ -8,7 +8,7 @@ CC = clang
 CFLAGS = -Wall
 
 # Project files
-LIBS = -lpcap -lnet
+LIBS = -lpcap -lnet -lpthread
 EXE = smurf_ip
 
 OBJS = craft_tcp.o process_file.o data_queue.o data_circle_linked_list.o thread_process.o util_signal.o util_cpu.o main.o
