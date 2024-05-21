@@ -10,6 +10,7 @@ IPQueue *IPQueueAlloc(void) {
     if (q == NULL) {
         return NULL;
     }
+    q->len = 0;
     pthread_mutex_init(&q->mutex, NULL);
     return q;
 };

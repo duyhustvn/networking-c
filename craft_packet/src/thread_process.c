@@ -1,9 +1,19 @@
 #include "thread_process.h"
+#include "data_circle_linked_list.h"
 #include <libnet/libnet-functions.h>
+#include <pthread.h>
 #include <stdlib.h>
 
 
 void *process(void *threadArg) {
+
+    // enable cancellation
+    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+
+    // set cancel type to deferred, thread only be canceled at cancellation point
+    // pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, &lastType);
+    pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
+
     uint16_t srcPort = 49996; // random or fixed port
     uint16_t dstPort = 443;
     uint32_t seq = 2508113620;
@@ -17,10 +27,10 @@ void *process(void *threadArg) {
 
     printf("Thread %d starting \n", threadID);
 
-    IPQueue *q = data->q;
+    IPCircleLinkedList *ll = data->ll;
 
-    while (!IPQueueEmpty(q)) {
-        Data* packet = IPDequeue(q);
+    while (1) {
+        Data* packet = IPCircleLinkedListNext(ll);
         if (packet == NULL) {
             continue;
         }
@@ -45,11 +55,14 @@ void *process(void *threadArg) {
         // printf("threadID: %d ip: %s\n", threadID, ip);
         data->countPackets++;
 
-        free(packet->ip);
-        free(packet->next);
-        free(packet);
+        // free(packet->ip);
+        // free(packet->next);
+        // free(packet);
         free(dstIPStr);
+
+        // cancellation point
+        pthread_testcancel();
     }
 
-    pthread_exit(NULL);
+    // pthread_exit(NULL);
 }

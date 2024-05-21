@@ -24,7 +24,7 @@ static void signalHandlerSigsegv(int sig) {
 }
 
 void usage(char* name) {
-    printf("usage: %s [-a source_ip] [-b source_mac] [-c destination_mac] [-d file_name] [-e device_interface]\n\n", name);
+    printf("usage: %s [-a source_ip] [-b source_mac] [-c destination_mac] [-d file_name] [-e device_interface] [-f timeout]\n\n", name);
 }
 
 void initSignalHandler() {
@@ -33,6 +33,12 @@ void initSignalHandler() {
 }
 
 int main(int argc, char **argv) {
+
+    long seconds, useconds;
+    double total_time;
+    struct timeval start, end;
+    gettimeofday(&start, NULL);
+
     char* programName = "smuf_ip";
     char errbuf[LIBNET_ERRBUF_SIZE];
 
@@ -77,9 +83,11 @@ int main(int argc, char **argv) {
     char *srcIP, *srcMac, *dstMac;
     char *fileName;
     char* devInterface;
+    char* timeoutStr; // the time program run
+    int timeout;
 
     int c;
-    while((c = getopt(argc, argv, "a:b:c:d:e:")) != -1) {
+    while((c = getopt(argc, argv, "a:b:c:d:e:f:")) != -1) {
         switch (c) {
             case 'a':
                 srcIP = optarg;
@@ -96,19 +104,26 @@ int main(int argc, char **argv) {
             case 'e':
                 devInterface = optarg;
                 break;
+            case 'f':
+                timeoutStr = optarg;
+                timeout = atoi(timeoutStr);
+                if (timeout <= 0) {
+                    timeout = 5;
+                }
+                break;
             default:
                 usage(programName);
         }
     }
 
-    printf("From argument srcIP: %s srcMac: %s dstMac: %s fileName: %s devInterface: %s \n\n", srcIP, srcMac, dstMac, fileName, devInterface);
+    printf("From argument srcIP: %s srcMac: %s dstMac: %s fileName: %s devInterface: %s timeout: %d \n\n", srcIP, srcMac, dstMac, fileName, devInterface, timeout);
 
     if (!srcIP || !srcMac || !dstMac || !fileName || ! devInterface) {
         usage(programName);
     }
 
 
-    config cfg = {.srcIP = srcIP, .srcMac = srcMac, .dstMac = dstMac, .filePath = fileName, .deviceInterface = devInterface};
+    config cfg = {.srcIP = srcIP, .srcMac = srcMac, .dstMac = dstMac, .filePath = fileName, .deviceInterface = devInterface, .timeout = timeout};
 
     libnet_t *l = libnet_init(LIBNET_RAW4, devInterface, errbuf);
     if (l == NULL) {
@@ -128,6 +143,13 @@ int main(int argc, char **argv) {
     libnet_destroy(l);
 
     printf("sigsegv_count: %d\n", sigsegv_count);
+
+    gettimeofday(&end, NULL);
+    seconds  = end.tv_sec  - start.tv_sec;
+    useconds = end.tv_usec - start.tv_usec;
+
+    total_time = seconds + useconds / 1e6;
+    warnx("FINISH PROGRAM after %f seconds\n", total_time);
 
     return 0;
 }
