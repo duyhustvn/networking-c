@@ -23,6 +23,7 @@ void IPCircleLinkedListFree(IPCircleLinkedList* ll) {
         Data *next;
         do {
             next = tmp->next;
+            free(tmp->ip);
             free(tmp);
             tmp = next;
         } while(tmp != ll->last);
