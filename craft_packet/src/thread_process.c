@@ -48,8 +48,9 @@ void *process(void *threadArg) {
             printf("ERROR: libnet init failed %s\n", errbuf);
             continue;
         }
-        libnet_clear_packet(l);
+
         craftTcpPacket(l, srcPort, dstPort, seq, ack,  control,  data->srcIp,  dstIP,  data->srcMac,  data->dstMac, errstr);
+        // libnet_clear_packet(l);
         libnet_destroy(l);
 
         // printf("threadID: %d ip: %s\n", threadID, ip);
