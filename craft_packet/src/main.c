@@ -10,6 +10,8 @@
 
 #include <libnet/libnet-functions.h>
 
+#include "./logger/log.h"
+
 volatile sig_atomic_t sigterm_count = 0;
 volatile sig_atomic_t sigsegv_count = 0;
 volatile sig_atomic_t sigint_count = 0;
@@ -33,6 +35,9 @@ void initSignalHandler() {
 }
 
 int main(int argc, char **argv) {
+    initLogFile("./app.log");
+    setLogLevel(LOG_NONE);
+    logMessage(LOG_INFO, "Start program");
 
     long seconds, useconds;
     double total_time;
@@ -150,6 +155,7 @@ int main(int argc, char **argv) {
 
     total_time = seconds + useconds / 1e6;
     warnx("FINISH PROGRAM after %f seconds\n", total_time);
+    // logMessage(LOG_INFO, "FINISH PROGRAM after seconds\n");
 
     return 0;
 }

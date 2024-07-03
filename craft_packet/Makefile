@@ -11,7 +11,7 @@ CFLAGS = -Wall
 LIBS = -lpcap -lnet -lpthread
 EXE = smurf_ip
 
-OBJS = craft_tcp.o process_file.o data_queue.o data_circle_linked_list.o thread_process.o util_signal.o util_cpu.o main.o
+OBJS = log.o craft_tcp.o process_file.o data_queue.o data_circle_linked_list.o thread_process.o util_signal.o util_cpu.o main.o
 
 SRC_DIR = src
 #
@@ -34,10 +34,15 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	mkdir -p $(BUILD_DIR)
 	$(CC) -c $(CFLAGS) $(DBGCFLAGS) -o $@ $< $(LIBS)
 
+
+$(BUILD_DIR)/%.o: $(SRC_DIR)/*/%.c
+	mkdir -p $(BUILD_DIR)
+	$(CC) -c $(CFLAGS) $(DBGCFLAGS) -o $@ $< $(LIBS)
+
 run:
 	# FILE="./statics/sample" SOURCE_IP="192.168.114.43" SOURCE_MAC="28:df:eb:6a:8c:02" DEST_MAC="e0:23:ff:e9:53:9f" DEVICE_INTERFACE="wlp0s20f3" $(BUILD_EXE)
 	# $(BUILD_EXE) -a 192.168.114.43 -b 28:df:eb:6a:8c:02 -c e0:23:ff:e9:53:9f -d statics/sample -e wlp0s20f3 -f 20
-	$(BUILD_EXE) -a 192.168.101.8 -b c8:09:a8:4f:19:7f -c 3c:ff:d8:c1:d9:71 -d statics/sample -e wlp0s20f3 -f 10
+	$(BUILD_EXE) -a 192.168.101.8 -b c8:09:a8:4f:19:7f -c 3c:ff:d8:c1:d9:71 -d statics/sample -e wlp0s20f3 -f 1
 
 
 clean:
