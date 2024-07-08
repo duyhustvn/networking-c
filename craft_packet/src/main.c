@@ -6,10 +6,11 @@
 #include "process_file.h"
 #include "craft_tcp.h"
 #include "config.h"
-#include "util_signal.h"
+
 
 #include <libnet/libnet-functions.h>
 
+#include "./util/util_signal.h"
 #include "./logger/log.h"
 
 volatile sig_atomic_t sigterm_count = 0;
