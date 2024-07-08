@@ -5,6 +5,11 @@
 make build
 #+end_src
 
+- Define DEBUG
+#+begin_src shell
+make build DEBUG=1
+#+end_src
+
 * Run program
 #+begin_src shell
 sudo make run

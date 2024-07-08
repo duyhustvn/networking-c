@@ -37,7 +37,7 @@ void initSignalHandler() {
 
 int main(int argc, char **argv) {
     initLogFile("./app.log");
-    setLogLevel(LOG_NONE);
+    setLogLevel(LOG_DEBUG);
     logMessage(LOG_INFO, "Start program");
 
     long seconds, useconds;
@@ -122,7 +122,9 @@ int main(int argc, char **argv) {
         }
     }
 
-    printf("From argument srcIP: %s srcMac: %s dstMac: %s fileName: %s devInterface: %s timeout: %d \n\n", srcIP, srcMac, dstMac, fileName, devInterface, timeout);
+#ifdef DEBUG
+    logMessage(LOG_DEBUG, "Argument srcIP: %s srcMac: %s dstMac: %s fileName: %s devInterface: %s timeout: %d", srcIP, srcMac, dstMac, fileName, devInterface, timeout);
+#endif
 
     if (!srcIP || !srcMac || !dstMac || !fileName || ! devInterface) {
         usage(programName);
@@ -155,8 +157,7 @@ int main(int argc, char **argv) {
     useconds = end.tv_usec - start.tv_usec;
 
     total_time = seconds + useconds / 1e6;
-    warnx("FINISH PROGRAM after %f seconds\n", total_time);
-    // logMessage(LOG_INFO, "FINISH PROGRAM after seconds\n");
+    logMessage(LOG_DEBUG, "Run time: %f seconds \n", total_time);
 
     return 0;
 }

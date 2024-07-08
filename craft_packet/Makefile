@@ -7,6 +7,10 @@
 CC = clang
 CFLAGS = -Wall
 
+ifdef DEBUG
+	CFLAGS += -DDEBUG
+endif
+
 # Project files
 LIBS = -lpcap -lnet -lpthread
 EXE = smurf_ip
