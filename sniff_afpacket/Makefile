@@ -5,7 +5,7 @@ CFLAGS = -Wall
 # Project files
 ODIR = obj
 LIBS =
-EXE = main.out
+EXE = sniff_packet
 
 OBJS = main.o
 
@@ -32,7 +32,7 @@ $(BUILD_EXE): $(BUILD_OBJS)
 	$(CC) $(CFLAGS) $(DBGCFLAGS) -o $(BUILD_EXE) $^ $(LIBS)
 
 run:
-	DEVICE_INTERFACE=wlp0s20f3 $(BUILD_EXE) 1 tcp 10000
+	DEVICE_INTERFACE=wlp1s0  $(BUILD_EXE) 1 tcp 10000
 
 clean:
 	rm -rf $(EXE) $(ODIR) $(BUILD_DIR)

@@ -1,14 +1,11 @@
 // Reference: https://www.binarytides.com/packet-sniffer-code-in-c-using-linux-sockets-bsd-part-2/
 // https://csulrong.github.io/blogs/2022/03/10/linux-afpacket/
 
+#include "common.h"
+
 #include<netinet/in.h>
 #include<errno.h>
 #include<netdb.h>
-#include<stdio.h>	//For standard things
-#include<stdlib.h>	//malloc
-#include<string.h>	//strlen
-#include<err.h>
-
 #include<netinet/ip_icmp.h>	//Provides declarations for icmp header
 #include<netinet/udp.h>	//Provides declarations for udp header
 #include<netinet/tcp.h>	//Provides declarations for tcp header
