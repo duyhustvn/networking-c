@@ -2,6 +2,7 @@
 // https://csulrong.github.io/blogs/2022/03/10/linux-afpacket/
 
 #include "common.h"
+#include "source-af-packet.h"
 
 #include<netinet/in.h>
 #include<errno.h>
@@ -60,6 +61,14 @@ int main()
 		errx(1, "ERROR: failed to load environment device interface");
 		return 1;
 	}
+
+    AFPTheadVars ptv = {0};
+
+    ret = AFPCreateSocket(&ptv, dev_interface, 0);
+    if (ret == RESULT_FAILURE) {
+		perror("Socket Error");
+        exit(EXIT_FAILURE);
+    }
 
 	int sockfd = socket(AF_PACKET , SOCK_RAW , htons(ETH_P_ALL)) ; // socket file description
 	//setsockopt(sockfd , SOL_SOCKET , SO_BINDTODEVICE , "eth0" , strlen("eth0")+ 1 );
