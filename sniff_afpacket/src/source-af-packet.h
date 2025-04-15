@@ -27,7 +27,8 @@ typedef struct AFPThreadVars_ {
 
 } AFPTheadVars;
 
-static int AFPCreateSocket(AFPTheadVars *ptv, char *devname, int verbose);
+int AFPCreateSocket(AFPTheadVars *ptv, char *devname, int verbose);
 static int AFPComputeRingParams(AFPTheadVars *ptv, int order);
+int AFPGetIfnumByDev(int fd, const char *ifname, int verbose);
 
 #endif // SOURCE_AF_PACKET_H_

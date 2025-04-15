@@ -1,6 +1,5 @@
 #include "source-af-packet.h"
 
-#include <cstring>
 #include <errno.h>
 #include <linux/if_ether.h>
 #include <linux/if_packet.h>
@@ -57,7 +56,7 @@ static int AFPSetupRing(AFPTheadVars *ptv, char *devname) {
     return RESULT_OK;
 }
 
-static int AFPCreateSocket(AFPTheadVars *ptv, char *devname, int verbose) {
+int AFPCreateSocket(AFPTheadVars *ptv, char *devname, int verbose) {
     int if_idx; // interface index
 
 

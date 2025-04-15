@@ -21,7 +21,8 @@
 #include<sys/types.h>
 #include<unistd.h>
 #include<poll.h>
-#include <linux/if_packet.h>
+#include<linux/if_packet.h>
+#include<sys/mman.h>
 
 #define POLL_TIMEOUT -1
 
@@ -37,6 +38,10 @@ FILE *logfile;
 struct sockaddr_in source,dest;
 int tcp=0,udp=0,icmp=0,others=0,igmp=0,total=0,i,j;
 
+#define ETH_P_ALL 0x0003
+#define FRAME_SIZE 2048
+#define NUM_FRAMES 64
+
 int main()
 {
 	printf("program is running at process id: %ld\n", (long)getpid());
@@ -46,8 +51,6 @@ int main()
 	struct pollfd fds;
 	int ret;
 	int if_idx; // index of network interface
-
-	unsigned char *buffer = (unsigned char *) malloc(65536); //Its Big!
 
 	logfile=fopen("log.txt","w");
 	if(logfile==NULL)
@@ -62,65 +65,75 @@ int main()
 		return 1;
 	}
 
-    AFPTheadVars ptv = {0};
-
-    ret = AFPCreateSocket(&ptv, dev_interface, 0);
-    if (ret == RESULT_FAILURE) {
+	int sockfd = socket(AF_PACKET , SOCK_RAW , htons(ETH_P_ALL)) ; // socket file description
+	if(sockfd < 0) {
 		perror("Socket Error");
+		return 1;
+	}
+
+    // Set up TPACKET_V2 ring buffer
+    struct tpacket_req req = {
+        .tp_block_size = FRAME_SIZE * NUM_FRAMES,
+        .tp_block_nr = 1,
+        .tp_frame_size = FRAME_SIZE,
+        .tp_frame_nr = NUM_FRAMES,
+    };
+
+    if (setsockopt(sockfd, SOL_PACKET, PACKET_RX_RING, &req, sizeof(req)) < 0) {
+        perror("setsockopt");
+        close(sockfd);
         exit(EXIT_FAILURE);
     }
 
-	int sockfd = socket(AF_PACKET , SOCK_RAW , htons(ETH_P_ALL)) ; // socket file description
-	//setsockopt(sockfd , SOL_SOCKET , SO_BINDTODEVICE , "eth0" , strlen("eth0")+ 1 );
-	if(sockfd < 0)
-	{
-		//Print the error with proper message
-		perror("Socket Error");
-		return 1;
-	}
+    // Map ring buffer to user space
+    void *buffer = mmap(NULL, req.tp_block_size * req.tp_block_nr,
+                        PROT_READ | PROT_WRITE, MAP_SHARED, sockfd, 0);
+    if (buffer == MAP_FAILED) {
+        perror("mmap");
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
 
-	if_idx = GetIfnumByDev(sockfd, dev_interface);
-	if (if_idx == -1) {
-		return 1;
-	}
+    // Bind to interface
+    struct sockaddr_ll sll = {
+        .sll_family = AF_PACKET,
+        .sll_protocol = htons(ETH_P_ALL),
+        .sll_ifindex = if_nametoindex(dev_interface),
+    };
 
-	// bind socket to a specific interface
-	struct sockaddr_ll bind_address;
-	memset(&bind_address, 0, sizeof(bind_address));
-	bind_address.sll_family = AF_PACKET;
-	bind_address.sll_protocol = htons(ETH_P_ALL);
-	bind_address.sll_ifindex = if_idx;
+    if (bind(sockfd, (struct sockaddr *)&sll, sizeof(sll)) < 0) {
+        perror("bind");
+        munmap(buffer, req.tp_block_size * req.tp_block_nr);
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
 
-	if (bind(sockfd, (struct sockaddr*)&bind_address, sizeof(bind_address)) == -1) {
-		perror("bind socket error");
-	}
+    printf("Capturing on interface %s...\n", dev_interface);
 
-	// prepare for polling
-	fds.fd = sockfd;
-	fds.events = POLLIN;
+    unsigned int frame_num = 0;
+    struct tpacket_hdr *header;
 
 	while(1)
 	{
-		ret = poll(&fds, 1, POLL_TIMEOUT);
-		if (ret < 0) {
-			continue;
-		}
+        header = (struct tpacket_hdr *)(buffer + (frame_num * FRAME_SIZE));
 
-		if (fds.revents & POLLIN) {
-			// Receive the packet
-			saddr_size = sizeof saddr;
-			//Receive a packet
-			data_size = recvfrom(sockfd , buffer , 65536 , 0 , &saddr , (socklen_t*)&saddr_size);
-			if(data_size <0 )
-			{
-				printf("Recvfrom error , failed to get packets\n");
-				return 1;
-			}
-			//Now process the packet
-			ProcessPacket(buffer , data_size);
-		}
+        // Wait for packet to be available
+        if (!(header->tp_status & TP_STATUS_USER)) {
+            usleep(1000);
+            continue;
+        }
+
+        // Access packet data (starts after header)
+        unsigned char *packet_data = (unsigned char *)header + header->tp_mac;
+        ProcessPacket(packet_data, header->tp_len);
+
+        // Release frame back to kernel
+        header->tp_status = TP_STATUS_KERNEL;
+        frame_num = (frame_num + 1) % NUM_FRAMES;
+        
 	}
 
+    munmap(buffer, req.tp_block_size * req.tp_block_nr);
 	close(sockfd);
 	printf("Finished");
 	return 0;
