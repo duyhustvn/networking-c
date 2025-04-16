@@ -5,6 +5,10 @@
 
 #include <linux/if_packet.h>
 
+#define FRAME_SIZE 2048
+#define NUM_FRAMES 64
+#define POLL_TIMEOUT -1
+
 enum {
     AFP_READ_OK,
     AFP_READ_FAILURE,
@@ -30,5 +34,13 @@ typedef struct AFPThreadVars_ {
 int AFPCreateSocket(AFPTheadVars *ptv, char *devname, int verbose);
 static int AFPComputeRingParams(AFPTheadVars *ptv, int order);
 int AFPGetIfnumByDev(int fd, const char *ifname, int verbose);
+void ProcessPacket(unsigned char* , int);
+void print_ip_header(unsigned char* , int);
+void print_tcp_packet(unsigned char * , int );
+void print_udp_packet(unsigned char * , int );
+void print_icmp_packet(unsigned char* , int );
+void PrintData (unsigned char* , int);
+int AFPPacketProcessUsingRingBuffer();
+int AFPPacketProcessPoll();
 
 #endif // SOURCE_AF_PACKET_H_
