@@ -379,7 +379,7 @@ int AFPPacketProcessUsingRingBuffer() {
 	int ret;
 	int if_idx; // index of network interface
 
-	logfile=fopen("log.txt","w");
+	logfile=fopen("log_ring_buffer.txt","w");
 	if(logfile==NULL)
 	{
 		printf("Unable to create log.txt file.");
@@ -481,7 +481,7 @@ int AFPPacketProcessPoll() {
 
 	unsigned char *buffer = (unsigned char *) malloc(65536); //Its Big!
 
-	logfile=fopen("log.txt","w");
+	logfile=fopen("log_poll.txt","w");
 	if(logfile==NULL)
 	{
 		printf("Unable to create log.txt file.");
