@@ -1,4 +1,5 @@
 #include "source-af-packet.h"
+#include "stats.h"
 
 #include <arpa/inet.h>
 #include <errno.h>
@@ -439,6 +440,9 @@ int AFPPacketProcessUsingRingBuffer() {
     unsigned int frame_num = 0;
     struct tpacket_hdr *header;
 
+    Stats stats = {0};
+    init_stats(&stats);
+
 	while(1)
 	{
         header = (struct tpacket_hdr *)(buffer + (frame_num * FRAME_SIZE));
@@ -453,12 +457,16 @@ int AFPPacketProcessUsingRingBuffer() {
         unsigned char *packet_data = (unsigned char *)header + header->tp_mac;
         ProcessPacket(packet_data, header->tp_len);
 
+        stats.packets_processed++;
+        stats.bytes_processed += header->tp_len;
+
         // Release frame back to kernel
         header->tp_status = TP_STATUS_KERNEL;
         frame_num = (frame_num + 1) % NUM_FRAMES;
         
 	}
 
+    print_stats(&stats);
     munmap(buffer, req.tp_block_size * req.tp_block_nr);
 	close(sockfd);
     return 0;
@@ -515,6 +523,9 @@ int AFPPacketProcessPoll() {
 	fds.fd = sockfd;
 	fds.events = POLLIN;
 
+    Stats stats = {0};
+    init_stats(&stats);
+
 	while(1)
 	{
 		ret = poll(&fds, 1, POLL_TIMEOUT);
@@ -534,9 +545,12 @@ int AFPPacketProcessPoll() {
 			}
 			//Now process the packet
 			ProcessPacket(buffer , data_size);
+            stats.packets_processed++;
+            stats.bytes_processed += data_size;
 		}
 	}
 
+    print_stats(&stats);
 	close(sockfd);
     return 0;
 }

@@ -16,6 +16,7 @@
 #include <netinet/ip.h>
 #include <netinet/if_ether.h>
 #include <poll.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -30,10 +31,19 @@
 
 extern FILE *logfile;
 
-int main()
+int main(int argc, char *argv[])
 {
 	printf("program is running at process id: %ld\n", (long)getpid());
-    AFPPacketProcessUsingRingBuffer();
+    if (argc != 2) {
+        printf("Usage: %s [ring|poll]\n", argv[0]);
+    }
+
+    if (strcmp(argv[1], "ring") == 0) {
+        AFPPacketProcessUsingRingBuffer();
+    } else if (strcmp(argv[1], "poll") == 0) {
+        AFPPacketProcessPoll();
+    }
+
 	printf("Finished");
 	return 0;
 }

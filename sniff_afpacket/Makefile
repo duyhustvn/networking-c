@@ -10,7 +10,7 @@ BUILD_DIR = build
 BUILD_EXE = $(BUILD_DIR)/$(EXE)
 
 run:
-	DEVICE_INTERFACE=wlp1s0  $(BUILD_EXE) 1 tcp 10000
+	DEVICE_INTERFACE=wlp1s0  $(BUILD_EXE) ring 
 
 clean:
 	rm -rf $(EXE) $(ODIR) $(BUILD_DIR)
