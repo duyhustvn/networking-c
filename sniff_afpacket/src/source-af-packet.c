@@ -123,7 +123,7 @@ void ProcessPacket(unsigned char* buffer, int size)
 	{
 		case 1:  //ICMP Protocol
 			++icmp;
-			print_icmp_packet( buffer , size);
+			// print_icmp_packet( buffer , size);
 			break;
 
 		case 2:  //IGMP Protocol
@@ -132,19 +132,19 @@ void ProcessPacket(unsigned char* buffer, int size)
 
 		case 6:  //TCP Protocol
 			++tcp;
-			print_tcp_packet(buffer , size);
+			// print_tcp_packet(buffer , size);
 			break;
 
 		case 17: //UDP Protocol
 			++udp;
-			print_udp_packet(buffer , size);
+			// print_udp_packet(buffer , size);
 			break;
 
 		default: //Some Other Protocol like ARP etc.
 			++others;
 			break;
 	}
-	printf("TCP : %d   UDP : %d   ICMP : %d   IGMP : %d   Others : %d   Total : %d\r", tcp , udp , icmp , igmp , others , total);
+	// printf("TCP : %d   UDP : %d   ICMP : %d   IGMP : %d   Others : %d   Total : %d\r", tcp , udp , icmp , igmp , others , total);
 }
 
 void print_ethernet_header(unsigned char* Buffer, int Size)
@@ -382,7 +382,7 @@ int AFPPacketProcessUsingRingBuffer() {
 	logfile=fopen("log_ring_buffer.txt","w");
 	if(logfile==NULL)
 	{
-		printf("Unable to create log.txt file.");
+		printf("Unable to create log_ring_buffer.txt file.");
 	}
 	printf("Starting...\n");
 
