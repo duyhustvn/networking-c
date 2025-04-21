@@ -23,7 +23,7 @@
 
 
 FILE *logfile;
-
+extern volatile bool running;
 
 struct sockaddr_in source,dest;
 int tcp=0,udp=0,icmp=0,others=0,igmp=0,total=0,i,j;
@@ -372,7 +372,7 @@ void PrintData (unsigned char* data , int Size)
 	}
 }
 
-int AFPPacketProcessUsingRingBuffer() {
+int AFPPacketProcessUsingRingBuffer(void) {
     int saddr_size , data_size;
 	struct sockaddr saddr;
 	struct pollfd fds;
@@ -443,7 +443,7 @@ int AFPPacketProcessUsingRingBuffer() {
     Stats stats = {0};
     init_stats(&stats);
 
-	while(1)
+	while(running)
 	{
         header = (struct tpacket_hdr *)(buffer + (frame_num * FRAME_SIZE));
 
@@ -472,7 +472,7 @@ int AFPPacketProcessUsingRingBuffer() {
     return 0;
 }
 
-int AFPPacketProcessPoll() {
+int AFPPacketProcessPoll(void) {
     int saddr_size , data_size;
 	struct sockaddr saddr;
 	struct pollfd fds;
@@ -526,7 +526,7 @@ int AFPPacketProcessPoll() {
     Stats stats = {0};
     init_stats(&stats);
 
-	while(1)
+	while(running)
 	{
 		ret = poll(&fds, 1, POLL_TIMEOUT);
 		if (ret < 0) {

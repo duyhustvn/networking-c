@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ITERATIONS=1
+ITERATIONS=5
 PROGRAM=./build/sniff_packet
 MTU=1500 
 
@@ -22,6 +22,7 @@ cleanup_interfaces() {
 }
 
 run_benchmark() {
+    echo "iteration $i"
     local method=$1
     local iteration=$2
     local output_file="result_${method}_${iteration}.txt"
@@ -35,6 +36,8 @@ run_benchmark() {
 
     # Replay traffic 
     sudo tcpreplay --mbps=1000 -i veth0 benchmark.pcap
+
+    sudo kill -SIGTERM $SNIFFER_PID
 
     # Wait for processing to complete and collect results
     wait ${SNIFFER_PID}
@@ -55,12 +58,14 @@ echo "method,iteration,pps,mbps" >> benchmark_results.csv
 # Run benchmark
 for i in $(seq 1 $ITERATIONS); do 
     echo "Running the iteration $i"
+
+
+    echo "Testing the poll method"
+    run_benchmark "poll" $i
     
     echo "Testing the ring buffer method"
     run_benchmark "ring" $i
 
-    #echo "Testing the poll method"
-    #run_benchmark "poll" $i
 done
 
 # Generate summary statistics

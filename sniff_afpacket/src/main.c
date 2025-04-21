@@ -16,7 +16,6 @@
 #include <netinet/ip.h>
 #include <netinet/if_ether.h>
 #include <poll.h>
-#include <string.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -30,6 +29,14 @@
 #define NUM_FRAMES 64
 
 extern FILE *logfile;
+volatile bool running = true;
+
+void signal_handler(int signum) {
+    if (signum == SIGTERM || signum == SIGINT) {
+        printf("Received terminal signal. Stop the program\n");
+        running = false;
+    }
+}
 
 int main(int argc, char *argv[])
 {
@@ -37,6 +44,9 @@ int main(int argc, char *argv[])
     if (argc != 2) {
         printf("Usage: %s [ring|poll]\n", argv[0]);
     }
+
+    signal(SIGTERM, signal_handler);
+    signal(SIGINT, signal_handler);
 
     if (strcmp(argv[1], "ring") == 0) {
         AFPPacketProcessUsingRingBuffer();

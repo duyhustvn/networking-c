@@ -40,7 +40,7 @@ void print_tcp_packet(unsigned char * , int );
 void print_udp_packet(unsigned char * , int );
 void print_icmp_packet(unsigned char* , int );
 void PrintData (unsigned char* , int);
-int AFPPacketProcessUsingRingBuffer();
-int AFPPacketProcessPoll();
+int AFPPacketProcessUsingRingBuffer(void);
+int AFPPacketProcessPoll(void);
 
 #endif // SOURCE_AF_PACKET_H_
