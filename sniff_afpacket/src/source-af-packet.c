@@ -15,6 +15,8 @@
 #include <netinet/ip.h>
 #include <netinet/if_ether.h>
 #include <poll.h>
+#include <stdio.h>
+#include <sys/poll.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -132,7 +134,7 @@ void ProcessPacket(unsigned char* buffer, int size)
 
 		case 6:  //TCP Protocol
 			++tcp;
-			// print_tcp_packet(buffer , size);
+			print_tcp_packet(buffer , size);
 			break;
 
 		case 17: //UDP Protocol
@@ -372,14 +374,14 @@ void PrintData (unsigned char* data , int Size)
 	}
 }
 
-int AFPPacketProcessUsingRingBuffer(void) {
+int AFPPacketProcessUsingRingBufferNoPolling(void) {
     int saddr_size , data_size;
 	struct sockaddr saddr;
 	struct pollfd fds;
 	int ret;
 	int if_idx; // index of network interface
 
-	logfile=fopen("log_ring_buffer.txt","w");
+	logfile=fopen("log_ring_buffer_.txt","w");
 	if(logfile==NULL)
 	{
 		printf("Unable to create log_ring_buffer.txt file.");
@@ -447,7 +449,7 @@ int AFPPacketProcessUsingRingBuffer(void) {
 	{
         header = (struct tpacket_hdr *)(buffer + (frame_num * FRAME_SIZE));
 
-        // Wait for packet to be available
+        // Wait for packet to be available (owned by user space)
         if (!(header->tp_status & TP_STATUS_USER)) {
             usleep(1000);
             continue;
@@ -471,6 +473,124 @@ int AFPPacketProcessUsingRingBuffer(void) {
 	close(sockfd);
     return 0;
 }
+
+int AFPPacketProcessUsingRingBufferPolling(void) {
+    int saddr_size , data_size;
+	struct sockaddr saddr;
+	struct pollfd fds;
+	int ret;
+	int if_idx; // index of network interface
+
+	logfile=fopen("log_ring_buffer_poll.txt","w");
+	if(logfile==NULL)
+	{
+		printf("Unable to create log_ring_buffer_poll.txt file.");
+	}
+	printf("Starting...\n");
+
+	char* dev_interface = getenv("DEVICE_INTERFACE");
+	if (dev_interface == NULL) {
+		errx(1, "ERROR: failed to load environment device interface");
+		exit(EXIT_FAILURE);
+	}
+
+	int sockfd = socket(AF_PACKET , SOCK_RAW , htons(ETH_P_ALL)) ; // socket file description
+	if(sockfd < 0) {
+		perror("Socket Error");
+		exit(EXIT_FAILURE);
+	}
+
+    // Set up TPACKET_V2 ring buffer
+    struct tpacket_req req = {
+        .tp_block_size = FRAME_SIZE * NUM_FRAMES,
+        .tp_block_nr = 1,
+        .tp_frame_size = FRAME_SIZE,
+        .tp_frame_nr = NUM_FRAMES,
+    };
+
+    if (setsockopt(sockfd, SOL_PACKET, PACKET_RX_RING, &req, sizeof(req)) < 0) {
+        perror("setsockopt");
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
+
+    // Map ring buffer to user space
+    void *buffer = mmap(NULL, req.tp_block_size * req.tp_block_nr,
+                        PROT_READ | PROT_WRITE, MAP_SHARED, sockfd, 0);
+    if (buffer == MAP_FAILED) {
+        perror("mmap");
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
+
+    // Bind to interface
+    struct sockaddr_ll sll = {
+        .sll_family = AF_PACKET,
+        .sll_protocol = htons(ETH_P_ALL),
+        .sll_ifindex = AFPGetIfnumByDev(sockfd, dev_interface, 0),
+    };
+
+    if (bind(sockfd, (struct sockaddr *)&sll, sizeof(sll)) < 0) {
+        perror("bind");
+        munmap(buffer, req.tp_block_size * req.tp_block_nr);
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Capturing on interface %s...\n", dev_interface);
+
+    unsigned int frame_num = 0;
+    struct tpacket_hdr *header;
+
+    Stats stats = {0};
+    init_stats(&stats);
+
+    // setup poll structure
+    fds.fd = sockfd;
+    fds.events = POLLIN | POLLPRI;
+
+	while(running)
+	{
+        // Wait for packets using poll
+        ret = poll(&fds, 1, POLL_TIMEOUT);
+        if (ret < 0) {
+            perror("poll");
+            break;
+        }
+
+        if (ret == 0) {
+            // Timeout occurred, no packets
+            continue;
+        }
+
+        if (fds.events & (POLLIN | POLLPRI)) {
+            header = (struct tpacket_hdr *)(buffer + (frame_num * FRAME_SIZE));
+
+            // Check if packet is ready
+            if (!(header->tp_status & TP_STATUS_USER)) {
+                // No more packets ready
+                break;
+            }
+
+            // Access packet data (starts after header)
+            unsigned char *packet_data = (unsigned char *)header + header->tp_mac;
+            ProcessPacket(packet_data, header->tp_len);
+
+            stats.packets_processed++;
+            stats.bytes_processed += header->tp_len;
+
+            // Release frame back to kernel
+            header->tp_status = TP_STATUS_KERNEL;
+            frame_num = (frame_num + 1) % NUM_FRAMES;
+        }
+	}
+
+    print_stats(&stats);
+    munmap(buffer, req.tp_block_size * req.tp_block_nr);
+	close(sockfd);
+    return 0;
+}
+
 
 int AFPPacketProcessPoll(void) {
     int saddr_size , data_size;

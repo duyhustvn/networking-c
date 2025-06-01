@@ -49,7 +49,8 @@ int main(int argc, char *argv[])
     signal(SIGINT, signal_handler);
 
     if (strcmp(argv[1], "ring") == 0) {
-        AFPPacketProcessUsingRingBuffer();
+        // AFPPacketProcessUsingRingBufferNoPolling();
+        AFPPacketProcessUsingRingBufferPolling();
     } else if (strcmp(argv[1], "poll") == 0) {
         AFPPacketProcessPoll();
     }
