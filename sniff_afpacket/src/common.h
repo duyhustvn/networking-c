@@ -12,6 +12,8 @@
 #include <time.h>
 #include <signal.h>
 
+#define __USE_GNU
+
 enum {
     RESULT_OK = 0,
     RESULT_FAILURE,

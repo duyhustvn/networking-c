@@ -478,7 +478,7 @@ int AFPPacketProcessUsingRingBufferPolling(void) {
     int saddr_size , data_size;
 	struct sockaddr saddr;
 	struct pollfd fds;
-	int ret;
+	int r;
 	int if_idx; // index of network interface
 
 	logfile=fopen("log_ring_buffer_poll.txt","w");
@@ -547,23 +547,21 @@ int AFPPacketProcessUsingRingBufferPolling(void) {
 
     // setup poll structure
     fds.fd = sockfd;
-    fds.events = POLLIN | POLLPRI;
+    fds.events = POLLIN;
 
 	while(running)
 	{
         // Wait for packets using poll
-        ret = poll(&fds, 1, POLL_TIMEOUT);
-        if (ret < 0) {
-            perror("poll");
-            break;
-        }
+        r = poll(&fds, 1, POLL_TIMEOUT);
 
-        if (ret == 0) {
-            // Timeout occurred, no packets
+        if (r > 0 && (fds.events & (POLLHUP|POLLRDHUP|POLLERR|POLLNVAL))) {
+            // r > 0: events occured
+            // POLLHUP: hang up - peer closed its end of the channel
+            // POLLRDHUP: remote peer closed connection
+            // POLLERR: error condition on the file descriptor
+            // POLLNVAL: invalid file descriptor
             continue;
-        }
-
-        if (fds.events & (POLLIN | POLLPRI)) {
+        } else if (r > 0) {
             header = (struct tpacket_hdr *)(buffer + (frame_num * FRAME_SIZE));
 
             // Check if packet is ready
@@ -582,7 +580,14 @@ int AFPPacketProcessUsingRingBufferPolling(void) {
             // Release frame back to kernel
             header->tp_status = TP_STATUS_KERNEL;
             frame_num = (frame_num + 1) % NUM_FRAMES;
+        } else if (r == 0) {
+            // Timeout occurred, no packets
+            continue;
+        } else if (r < 0) {
+            perror("poll");
+            break;
         }
+
 	}
 
     print_stats(&stats);

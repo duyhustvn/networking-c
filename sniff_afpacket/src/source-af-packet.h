@@ -7,7 +7,7 @@
 
 #define FRAME_SIZE 2048
 #define NUM_FRAMES 64
-#define POLL_TIMEOUT -1
+#define POLL_TIMEOUT 100
 
 enum {
     AFP_READ_OK,

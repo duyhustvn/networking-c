@@ -22,7 +22,6 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 
-#define POLL_TIMEOUT -1
 
 #define ETH_P_ALL 0x0003
 #define FRAME_SIZE 2048
