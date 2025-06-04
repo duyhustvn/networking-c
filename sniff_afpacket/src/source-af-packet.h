@@ -2,7 +2,6 @@
 #define SOURCE_AF_PACKET_H_
 
 #include "common.h"
-#include "tm-threads-common.h"
 
 #include <linux/if_packet.h>
 #include <stdint.h>
@@ -50,9 +49,9 @@ typedef struct AFPThreadVars_ {
     /* data linktype in host order */
     int datalink;
 
-} AFPTheadVars;
+} AFPThreadVars;
 
-int AFPCreateSocket(AFPTheadVars *ptv, char *devname, int verbose);
+int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose);
 int ProcessPacket(unsigned char* , int);
 void print_ip_header(unsigned char* , int);
 void print_tcp_packet(unsigned char * , int );

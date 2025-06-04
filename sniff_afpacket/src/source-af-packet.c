@@ -3,6 +3,7 @@
 #include "decode.h"
 
 #include <arpa/inet.h>
+#include <err.h>
 #include <errno.h>
 #include <linux/if_ether.h>
 #include <linux/if_packet.h>
@@ -17,6 +18,7 @@
 #include <netinet/if_ether.h>
 #include <poll.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/poll.h>
 #include <sys/socket.h>
 #include <sys/time.h>
@@ -66,7 +68,7 @@ static int AFPGetDevLinktype(int fd, const char *ifname) {
 }
 
 // TODO: update the logic to compute ring params
-static int AFPComputeRingParams(AFPTheadVars *ptv, int order) {
+static int AFPComputeRingParams(AFPThreadVars *ptv, int order) {
     ptv->req.v2.tp_block_size = FRAME_SIZE * NUM_FRAMES; /* Minimal size of contiguous block */
     ptv->req.v2.tp_block_nr = 1; /* Number of blocks */
     ptv->req.v2.tp_frame_size = FRAME_SIZE; /* Size of frame */
@@ -75,7 +77,7 @@ static int AFPComputeRingParams(AFPTheadVars *ptv, int order) {
     return RESULT_OK;    
 }
 
-static int AFPSetupRing(AFPTheadVars *ptv, char *devname) {
+static int AFPSetupRing(AFPThreadVars *ptv, char *devname) {
     int val;
 
 #ifdef HAVE_TPACKET_V3
@@ -89,6 +91,8 @@ static int AFPSetupRing(AFPTheadVars *ptv, char *devname) {
         errx(EXIT_FAILURE, "%s: ring parameters are incorrect.", devname);
     };
 
+    // Create ring buffer with above param
+    // the ring buffer will receive the frame from card with zero-copy from kernel to user-space
     if (setsockopt(ptv->socket, SOL_PACKET, PACKET_RX_RING, &(ptv->req.v2), sizeof(ptv->req.v2)) < 0) {
         printf("%s: failed to activate TPACKET_V2/TPACKET_V3 on packet socket: %s", devname, strerror(errno));
         return RESULT_FAILURE;
@@ -97,10 +101,13 @@ static int AFPSetupRing(AFPTheadVars *ptv, char *devname) {
     return RESULT_OK;
 }
 
-int AFPCreateSocket(AFPTheadVars *ptv, char *devname, int verbose) {
+int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose) {
     int if_idx; // interface index
 
     // create a raw socket
+    // AF_PACKET: work at layer 2, allow to access directly to Ethernet frame
+    // SOCK_RAW: allows access to raw frame content
+    // ETH_P_ALL: receive all protocol (IP, ARP ...)
     ptv->socket = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
     if (ptv->socket < 0) {
         perror("failed to create raw socket");
@@ -112,7 +119,7 @@ int AFPCreateSocket(AFPTheadVars *ptv, char *devname, int verbose) {
         goto socket_err; 
     }
 
-    /*bind socket*/
+    /* bind socket to interface */
     struct sockaddr_ll bind_address = {
         .sll_family = AF_PACKET,
         .sll_protocol = htons(ETH_P_ALL),
@@ -511,6 +518,8 @@ int AFPPacketProcessUsingRingBufferNoPolling(void) {
     return 0;
 }
 
+
+
 int AFPPacketProcessUsingRingBufferPolling(void) {
     int saddr_size , data_size;
 	struct sockaddr saddr;
@@ -530,6 +539,12 @@ int AFPPacketProcessUsingRingBufferPolling(void) {
 		errx(1, "ERROR: failed to load environment device interface");
 		exit(EXIT_FAILURE);
 	}
+
+    // AFPThreadVars*ptv = malloc(sizeof(AFPThreadVars));
+    // if (!ptv) {
+    //     errx(1, "Failed to allocate memory for thread vars");
+    // }
+    // AFPCreateSocket(ptv, dev_interface, 0);
 
 	int sockfd = socket(AF_PACKET , SOCK_RAW , htons(ETH_P_ALL)) ; // socket file description
 	if(sockfd < 0) {
