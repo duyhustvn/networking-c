@@ -2,12 +2,16 @@
 #define SOURCE_AF_PACKET_H_
 
 #include "common.h"
+#include "tm-threads-common.h"
 
 #include <linux/if_packet.h>
+#include <stdint.h>
 
 #define FRAME_SIZE 2048
 #define NUM_FRAMES 64
 #define POLL_TIMEOUT 100
+
+#define AFP_IFACE_NAME_LENGTH 48
 
 enum {
     AFP_READ_OK,
@@ -24,6 +28,7 @@ union thdr {
 #ifdef HAVE_TPACKET_V3
     struct tpacket3_hdr *h3;
 #endif
+    void * raw;
 };
 
 typedef struct AFPThreadVars_ {
@@ -36,11 +41,18 @@ typedef struct AFPThreadVars_ {
 #endif
     } req;
 
+    char iface[AFP_IFACE_NAME_LENGTH];
+
+    /* mmap ring buffer */
+    unsigned int ring_buflen;
+    uint8_t *ring_buf;
+
+    /* data linktype in host order */
+    int datalink;
+
 } AFPTheadVars;
 
 int AFPCreateSocket(AFPTheadVars *ptv, char *devname, int verbose);
-static int AFPComputeRingParams(AFPTheadVars *ptv, int order);
-int AFPGetIfnumByDev(int fd, const char *ifname, int verbose);
 int ProcessPacket(unsigned char* , int);
 void print_ip_header(unsigned char* , int);
 void print_tcp_packet(unsigned char * , int );

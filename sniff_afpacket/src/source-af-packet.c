@@ -1,5 +1,6 @@
 #include "source-af-packet.h"
 #include "stats.h"
+#include "decode.h"
 
 #include <arpa/inet.h>
 #include <errno.h>
@@ -30,7 +31,7 @@ extern volatile bool running;
 struct sockaddr_in source,dest;
 int tcp=0,udp=0,icmp=0,others=0,igmp=0,total=0,i,j;
 
-int AFPGetIfnumByDev(int fd, const char *ifname, int verbose) {
+static int AFPGetIfnumByDev(int fd, const char *ifname, int verbose) {
     struct ifreq ifr;
 
     memset(&ifr, 0, sizeof(ifr));
@@ -41,6 +42,27 @@ int AFPGetIfnumByDev(int fd, const char *ifname, int verbose) {
     }
 
     return ifr.ifr_ifindex;
+}
+
+static int AFPGetDevLinktype(int fd, const char *ifname) {
+    struct ifreq ifr;
+
+    memset(&ifr, 0, sizeof(ifr));
+    strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+
+    if (ioctl(fd, SIOCGIFHWADDR, &ifr) == -1) {
+        errx(EXIT_FAILURE, "%s: failed to find interface: %s", ifname, strerror(errno));
+    }
+
+    switch (ifr.ifr_hwaddr.sa_family) {
+        case ARPHRD_LOOPBACK:
+            return LINKTYPE_ETHERNET;
+        case ARPHRD_PPP:
+        case ARPHRD_NONE:
+            return LINKTYPE_RAW;
+        default:
+            return ifr.ifr_hwaddr.sa_family;
+    }
 }
 
 // TODO: update the logic to compute ring params
@@ -78,7 +100,6 @@ static int AFPSetupRing(AFPTheadVars *ptv, char *devname) {
 int AFPCreateSocket(AFPTheadVars *ptv, char *devname, int verbose) {
     int if_idx; // interface index
 
-
     // create a raw socket
     ptv->socket = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
     if (ptv->socket < 0) {
@@ -106,6 +127,8 @@ int AFPCreateSocket(AFPTheadVars *ptv, char *devname, int verbose) {
     if (ret == RESULT_FAILURE) {
         goto socket_err;
     }
+
+    ptv->datalink = AFPGetDevLinktype(ptv->socket, devname);
     
     return RESULT_OK;
 
