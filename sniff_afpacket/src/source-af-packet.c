@@ -116,7 +116,7 @@ socket_err:
 }
 
 
-void ProcessPacket(unsigned char* buffer, int size)
+int ProcessPacket(unsigned char* buffer, int size)
 {
 	//Get the IP Header part of this packet , excluding the ethernet header
 	struct iphdr *iph = (struct iphdr*)(buffer + sizeof(struct ethhdr));
@@ -147,6 +147,7 @@ void ProcessPacket(unsigned char* buffer, int size)
 			break;
 	}
 	// printf("TCP : %d   UDP : %d   ICMP : %d   IGMP : %d   Others : %d   Total : %d\r", tcp , udp , icmp , igmp , others , total);
+	return 0;
 }
 
 void print_ethernet_header(unsigned char* Buffer, int Size)
@@ -394,13 +395,16 @@ int AFPPacketProcessUsingRingBufferNoPolling(void) {
 		exit(EXIT_FAILURE);
 	}
 
-	int sockfd = socket(AF_PACKET , SOCK_RAW , htons(ETH_P_ALL)) ; // socket file description
+    // AF_PACKET: work at layer 2, allow to access directly to Ethernet frame
+    // SOCK_RAW: allows access to raw frame content
+    // ETH_P_ALL: receive all protocol (IP, ARP ...)
+	int sockfd = socket(AF_PACKET , SOCK_RAW , htons(ETH_P_ALL)) ;
 	if(sockfd < 0) {
 		perror("Socket Error");
 		exit(EXIT_FAILURE);
 	}
 
-    // Set up TPACKET_V2 ring buffer
+    // TPACKET_V2 ring buffer param
     struct tpacket_req req = {
         .tp_block_size = FRAME_SIZE * NUM_FRAMES,
         .tp_block_nr = 1,
@@ -408,22 +412,29 @@ int AFPPacketProcessUsingRingBufferNoPolling(void) {
         .tp_frame_nr = NUM_FRAMES,
     };
 
+    // Create ring buffer with above param
+    // the ring buffer will receive the frame from card with zero-copy from kernel to user-space
     if (setsockopt(sockfd, SOL_PACKET, PACKET_RX_RING, &req, sizeof(req)) < 0) {
         perror("setsockopt");
         close(sockfd);
         exit(EXIT_FAILURE);
     }
 
-    // Map ring buffer to user space
-    void *buffer = mmap(NULL, req.tp_block_size * req.tp_block_nr,
-                        PROT_READ | PROT_WRITE, MAP_SHARED, sockfd, 0);
-    if (buffer == MAP_FAILED) {
+    // Map ring buffer kernel to user space
+    void *ring_buffer = mmap(NULL,
+                        req.tp_block_size * req.tp_block_nr,
+                        PROT_READ | PROT_WRITE,
+                        MAP_SHARED,
+                        sockfd,
+                        0);
+
+    if (ring_buffer == MAP_FAILED) {
         perror("mmap");
         close(sockfd);
         exit(EXIT_FAILURE);
     }
 
-    // Bind to interface
+    // Bind socket to interface
     struct sockaddr_ll sll = {
         .sll_family = AF_PACKET,
         .sll_protocol = htons(ETH_P_ALL),
@@ -432,7 +443,7 @@ int AFPPacketProcessUsingRingBufferNoPolling(void) {
 
     if (bind(sockfd, (struct sockaddr *)&sll, sizeof(sll)) < 0) {
         perror("bind");
-        munmap(buffer, req.tp_block_size * req.tp_block_nr);
+        munmap(ring_buffer, req.tp_block_size * req.tp_block_nr);
         close(sockfd);
         exit(EXIT_FAILURE);
     }
@@ -447,9 +458,12 @@ int AFPPacketProcessUsingRingBufferNoPolling(void) {
 
 	while(running)
 	{
-        header = (struct tpacket_hdr *)(buffer + (frame_num * FRAME_SIZE));
+        // Get exactly 1 frame from ring buffer
+        header = (struct tpacket_hdr *)(ring_buffer + (frame_num * FRAME_SIZE));
 
-        // Wait for packet to be available (owned by user space)
+        // Check if the frame is filled content by kernel and transfer it to user space
+        // if not may be the kernel is filling the frame to ring buffer slot
+        // or there is no frame in that ring buffer slot
         if (!(header->tp_status & TP_STATUS_USER)) {
             usleep(1000);
             continue;
@@ -469,7 +483,7 @@ int AFPPacketProcessUsingRingBufferNoPolling(void) {
 	}
 
     print_stats(&stats);
-    munmap(buffer, req.tp_block_size * req.tp_block_nr);
+    munmap(ring_buffer, req.tp_block_size * req.tp_block_nr);
 	close(sockfd);
     return 0;
 }
@@ -515,9 +529,9 @@ int AFPPacketProcessUsingRingBufferPolling(void) {
     }
 
     // Map ring buffer to user space
-    void *buffer = mmap(NULL, req.tp_block_size * req.tp_block_nr,
+    void *ring_buffer = mmap(NULL, req.tp_block_size * req.tp_block_nr,
                         PROT_READ | PROT_WRITE, MAP_SHARED, sockfd, 0);
-    if (buffer == MAP_FAILED) {
+    if (ring_buffer == MAP_FAILED) {
         perror("mmap");
         close(sockfd);
         exit(EXIT_FAILURE);
@@ -532,7 +546,7 @@ int AFPPacketProcessUsingRingBufferPolling(void) {
 
     if (bind(sockfd, (struct sockaddr *)&sll, sizeof(sll)) < 0) {
         perror("bind");
-        munmap(buffer, req.tp_block_size * req.tp_block_nr);
+        munmap(ring_buffer, req.tp_block_size * req.tp_block_nr);
         close(sockfd);
         exit(EXIT_FAILURE);
     }
@@ -562,7 +576,7 @@ int AFPPacketProcessUsingRingBufferPolling(void) {
             // POLLNVAL: invalid file descriptor
             continue;
         } else if (r > 0) {
-            header = (struct tpacket_hdr *)(buffer + (frame_num * FRAME_SIZE));
+            header = (struct tpacket_hdr *)(ring_buffer + (frame_num * FRAME_SIZE));
 
             // Check if packet is ready
             if (!(header->tp_status & TP_STATUS_USER)) {
@@ -572,7 +586,7 @@ int AFPPacketProcessUsingRingBufferPolling(void) {
 
             // Access packet data (starts after header)
             unsigned char *packet_data = (unsigned char *)header + header->tp_mac;
-            ProcessPacket(packet_data, header->tp_len);
+            r = ProcessPacket(packet_data, header->tp_len);
 
             stats.packets_processed++;
             stats.bytes_processed += header->tp_len;
@@ -591,7 +605,7 @@ int AFPPacketProcessUsingRingBufferPolling(void) {
 	}
 
     print_stats(&stats);
-    munmap(buffer, req.tp_block_size * req.tp_block_nr);
+    munmap(ring_buffer, req.tp_block_size * req.tp_block_nr);
 	close(sockfd);
     return 0;
 }

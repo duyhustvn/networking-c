@@ -19,6 +19,13 @@ enum {
     AFP_RECOVERABLE_ERROR,
 };
 
+union thdr {
+    struct tpacket2_hdr *h2;
+#ifdef HAVE_TPACKET_V3
+    struct tpacket3_hdr *h3;
+#endif
+};
+
 typedef struct AFPThreadVars_ {
     int socket; // socket file descriptor
 
@@ -34,7 +41,7 @@ typedef struct AFPThreadVars_ {
 int AFPCreateSocket(AFPTheadVars *ptv, char *devname, int verbose);
 static int AFPComputeRingParams(AFPTheadVars *ptv, int order);
 int AFPGetIfnumByDev(int fd, const char *ifname, int verbose);
-void ProcessPacket(unsigned char* , int);
+int ProcessPacket(unsigned char* , int);
 void print_ip_header(unsigned char* , int);
 void print_tcp_packet(unsigned char * , int );
 void print_udp_packet(unsigned char * , int );
